@@ -4,7 +4,6 @@ import argparse
 import asyncio
 import sys
 from pathlib import Path
-from typing import Optional
 
 from pai_note_exporter.config import Config
 from pai_note_exporter.exceptions import (
@@ -13,8 +12,8 @@ from pai_note_exporter.exceptions import (
     ConfigurationError,
     TimeoutError,
 )
-from pai_note_exporter.login import PlaudAILogin
 from pai_note_exporter.logger import setup_logger
+from pai_note_exporter.login import PlaudAILogin
 
 
 def parse_args() -> argparse.Namespace:
@@ -77,10 +76,10 @@ Examples:
 
 
 async def login_command(
-    env_file: Optional[Path] = None,
+    env_file: Path | None = None,
     headless: bool = True,
-    screenshot_path: Optional[str] = None,
-    log_level: Optional[str] = None,
+    screenshot_path: str | None = None,
+    log_level: str | None = None,
 ) -> int:
     """Execute the login command.
 

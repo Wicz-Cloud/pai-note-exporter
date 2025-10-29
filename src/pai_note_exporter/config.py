@@ -3,7 +3,6 @@
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
 
 from dotenv import load_dotenv
 
@@ -29,7 +28,7 @@ class Config:
     browser_timeout: int = 30000
 
     @classmethod
-    def from_env(cls, env_file: Optional[Path] = None) -> "Config":
+    def from_env(cls, env_file: Path | None = None) -> "Config":
         """Load configuration from environment variables.
 
         Args:

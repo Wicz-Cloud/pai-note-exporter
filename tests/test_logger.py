@@ -63,7 +63,7 @@ class TestLogger:
         """Test that logger creates parent directories for log file."""
         with tempfile.TemporaryDirectory() as tmpdir:
             log_file = Path(tmpdir) / "nested" / "dir" / "test.log"
-            logger = setup_logger("test_logger_nested", "INFO", str(log_file))
+            setup_logger("test_logger_nested", "INFO", str(log_file))
 
             assert log_file.exists()
             assert log_file.parent.exists()

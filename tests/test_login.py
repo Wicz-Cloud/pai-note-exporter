@@ -1,12 +1,11 @@
 """Tests for login module."""
 
-import os
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from pai_note_exporter.config import Config
-from pai_note_exporter.exceptions import AuthenticationError, BrowserError
+from pai_note_exporter.exceptions import BrowserError
 from pai_note_exporter.login import PlaudAILogin
 
 

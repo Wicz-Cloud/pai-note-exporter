@@ -1,13 +1,14 @@
 """Plaud.ai login functionality using Playwright."""
 
 import asyncio
-from typing import Optional
+import builtins
+from typing import Any
 
 from playwright.async_api import Browser, BrowserContext, Page, async_playwright
 
 from pai_note_exporter.config import Config
 from pai_note_exporter.exceptions import AuthenticationError, BrowserError, TimeoutError
-from pai_note_exporter.logger import get_logger, setup_logger
+from pai_note_exporter.logger import setup_logger
 
 
 class PlaudAILogin:
@@ -46,10 +47,10 @@ class PlaudAILogin:
             log_level=config.log_level,
             log_file=config.log_file,
         )
-        self.browser: Optional[Browser] = None
-        self.context: Optional[BrowserContext] = None
-        self.page: Optional[Page] = None
-        self._playwright = None
+        self.browser: Browser | None = None
+        self.context: BrowserContext | None = None
+        self.page: Page | None = None
+        self._playwright: Any = None
 
     async def __aenter__(self) -> "PlaudAILogin":
         """Async context manager entry.
@@ -79,9 +80,7 @@ class PlaudAILogin:
         try:
             self.logger.info("Starting browser...")
             self._playwright = await async_playwright().start()
-            self.browser = await self._playwright.chromium.launch(
-                headless=self.config.headless
-            )
+            self.browser = await self._playwright.chromium.launch(headless=self.config.headless)
             self.context = await self.browser.new_context(
                 viewport={"width": 1280, "height": 720},
             )
@@ -246,14 +245,12 @@ class PlaudAILogin:
                     self.logger.warning(
                         "Still on login page after submission - credentials may be incorrect"
                     )
-                    raise AuthenticationError(
-                        "Login failed: Still on login page after submission"
-                    )
+                    raise AuthenticationError("Login failed: Still on login page after submission")
 
                 self.logger.info(f"Login successful! Current URL: {current_url}")
                 return True
 
-            except asyncio.TimeoutError as e:
+            except builtins.TimeoutError as e:
                 self.logger.error("Login operation timed out")
                 raise TimeoutError("Login operation timed out") from e
 
