@@ -153,6 +153,19 @@ traces/
 *.log
 logs/
 
+# Exported files
+exports/
+
+# HAR files (network captures)
+*.har
+
+# Debug screenshots
+*_debug.png
+login_page_debug.png
+
+# Development documentation
+AGENT_INSTRUCTIONS.md
+
 # Local development
 .envrc
 .direnv/

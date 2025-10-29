@@ -4,7 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
-A Python 3.11+ program that logs into Plaud.ai via Playwright using credentials from environment variables. This tool provides automated authentication to Plaud.ai with comprehensive error handling, logging, and security features.
+A Python 3.11+ program that authenticates with Plaud.ai API and exports recordings and transcriptions. This tool provides automated authentication and data export from Plaud.ai with comprehensive error handling, logging, and security features.
 
 ## ⚠️ Security Disclaimer
 
@@ -21,7 +21,8 @@ A Python 3.11+ program that logs into Plaud.ai via Playwright using credentials 
 
 ## Features
 
-- 🔐 Secure authentication with Plaud.ai using Playwright
+- 🔐 Secure authentication with Plaud.ai API using Bearer tokens
+- 📥 Export recordings and transcriptions from Plaud.ai
 - 📝 Comprehensive logging with configurable levels
 - 🛡️ Robust error handling with custom exceptions
 - ⚙️ Configuration via environment variables (.env file)
@@ -29,7 +30,7 @@ A Python 3.11+ program that logs into Plaud.ai via Playwright using credentials 
 - 🎨 Code quality tools (Black, isort, Ruff, mypy)
 - 🔒 Pre-commit hooks with detect-secrets
 - 📚 Clear documentation and docstrings
-- 🚀 Easy CLI interface
+- 🚀 Easy CLI interface with interactive and non-interactive modes
 
 ## Requirements
 
@@ -62,13 +63,7 @@ pip install -e .
 pip install -e ".[dev]"
 ```
 
-### 4. Install Playwright browsers
-
-```bash
-python -m playwright install chromium
-```
-
-### 5. Configure environment variables
+### 4. Configure environment variables
 
 ```bash
 cp .env.example .env
@@ -99,28 +94,34 @@ BROWSER_TIMEOUT=30000
 | `PLAUD_PASSWORD` | Your Plaud.ai password | - | Yes |
 | `LOG_LEVEL` | Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL) | INFO | No |
 | `LOG_FILE` | Path to log file | pai_note_exporter.log | No |
-| `HEADLESS` | Run browser in headless mode (true/false) | true | No |
-| `BROWSER_TIMEOUT` | Browser timeout in milliseconds | 30000 | No |
+| `EXPORT_DIR` | Directory to save exported files | exports | No |
+| `API_TIMEOUT` | API request timeout in seconds | 30 | No |
 
 ## Usage
 
 ### Command Line Interface
 
 ```bash
-# Login with credentials from .env file
-pai-note-exporter login
+# Export recordings interactively (prompts for selection)
+pai-note-exporter export
 
-# Login with specific .env file
-pai-note-exporter login --env-file /path/to/.env
+# Export all recordings without prompts (non-interactive)
+pai-note-exporter export --all
 
-# Login with visible browser (headed mode)
-pai-note-exporter login --no-headless
+# Export with audio files included
+pai-note-exporter export --include-audio
 
-# Take a screenshot after login
-pai-note-exporter login --screenshot screenshot.png
+# Skip transcription export (audio only)
+pai-note-exporter export --skip-transcription
+
+# Limit number of files to export
+pai-note-exporter export --limit 5
+
+# Export with specific .env file
+pai-note-exporter export --env-file /path/to/.env
 
 # Set log level
-pai-note-exporter login --log-level DEBUG
+pai-note-exporter export --log-level DEBUG
 
 # Show help
 pai-note-exporter --help
@@ -131,23 +132,26 @@ pai-note-exporter --help
 ```python
 import asyncio
 from pai_note_exporter.config import Config
-from pai_note_exporter.login import PlaudAILogin
+from pai_note_exporter.login import login
+from pai_note_exporter.export import PlaudAIExporter
 
 async def main():
     # Load configuration from .env
     config = Config.from_env()
     
-    # Login using context manager
-    async with PlaudAILogin(config) as login:
-        await login.login()
-        print("Successfully logged in!")
-        
-        # Get current URL
-        url = await login.get_current_url()
-        print(f"Current URL: {url}")
-        
-        # Take a screenshot
-        await login.take_screenshot("screenshot.png")
+    # Login and get access token
+    token = await login(config)
+    print("Successfully authenticated!")
+    
+    # Create exporter and list files
+    exporter = PlaudAIExporter(token, config)
+    files = await exporter.list_files()
+    print(f"Found {len(files)} recordings")
+    
+    # Export specific file
+    if files:
+        await exporter.download_file(files[0], include_audio=True)
+        print("File exported successfully!")
 
 if __name__ == "__main__":
     asyncio.run(main())
@@ -213,14 +217,16 @@ pai-note-exporter/
 │       ├── cli.py               # Command-line interface
 │       ├── config.py            # Configuration management
 │       ├── exceptions.py        # Custom exceptions
+│       ├── export.py            # Plaud.ai export functionality
 │       ├── logger.py            # Logging setup
-│       └── login.py             # Plaud.ai login functionality
+│       └── login.py             # Plaud.ai API authentication
 ├── tests/
 │   ├── __init__.py
 │   ├── test_config.py
 │   ├── test_exceptions.py
 │   ├── test_logger.py
-│   └── test_login.py
+│   ├── test_login.py
+│   └── test_export.py
 ├── .env.example                 # Example environment variables
 ├── .gitignore                   # Git ignore rules
 ├── .pre-commit-config.yaml      # Pre-commit hooks configuration
@@ -238,7 +244,8 @@ The application includes comprehensive error handling:
 
 - **ConfigurationError**: Invalid or missing configuration
 - **AuthenticationError**: Login failures or invalid credentials
-- **BrowserError**: Browser initialization or operation failures
+- **APIError**: API request failures or invalid responses
+- **ExportError**: File export or download failures
 - **TimeoutError**: Operations that exceed timeout limits
 
 All errors are logged with appropriate detail levels and include helpful error messages.
@@ -255,10 +262,10 @@ Logs are written to both console and file (if configured). Log levels:
 
 Example log output:
 ```
-2025-10-29 12:00:00 - pai_note_exporter.login - INFO - Starting browser...
-2025-10-29 12:00:01 - pai_note_exporter.login - INFO - Browser started successfully
-2025-10-29 12:00:02 - pai_note_exporter.login - INFO - Navigating to https://www.plaud.ai/login
-2025-10-29 12:00:03 - pai_note_exporter.login - INFO - Login successful!
+2025-10-29 12:00:00 - pai_note_exporter.login - INFO - Attempting API login...
+2025-10-29 12:00:01 - pai_note_exporter.login - INFO - Login successful, received access token
+2025-10-29 12:00:02 - pai_note_exporter.export - INFO - Listing available recordings...
+2025-10-29 12:00:03 - pai_note_exporter.export - INFO - Found 5 recordings, downloading selected files...
 ```
 
 ## Contributing
@@ -275,7 +282,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Acknowledgments
 
-- Built with [Playwright](https://playwright.dev/) for browser automation
+- Built with [httpx](https://www.python-httpx.org/) for async HTTP API calls
 - Uses [python-dotenv](https://github.com/theskumar/python-dotenv) for environment variable management
 
 ## Support

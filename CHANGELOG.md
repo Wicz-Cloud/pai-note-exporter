@@ -8,18 +8,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Initial project structure
-- Plaud.ai login functionality using Playwright
-- Configuration management via environment variables
-- Comprehensive logging system
-- Custom exception classes for error handling
-- Command-line interface (CLI)
-- Full test suite with pytest
-- Code quality tools configuration (Black, isort, Ruff, mypy)
-- Pre-commit hooks with detect-secrets
-- MIT License
-- Comprehensive documentation (README, CONTRIBUTING)
-- Security disclaimer
+- API-based authentication with Plaud.ai (replaced browser automation)
+- Export functionality for recordings and transcriptions
+- CLI export command with interactive and non-interactive modes
+- Audio file download capability
+- Bearer token authentication for API calls
+- Export directory configuration
+- --all flag for non-interactive export of all files
+- --include-audio flag for downloading audio files
+- --skip-transcription flag to bypass transcription export
+- --limit flag to restrict number of files exported
+- Async HTTP client using httpx for API operations
+- Comprehensive export error handling
+
+### Changed
+- Replaced Playwright browser automation with direct REST API calls
+- Updated authentication flow to use api.plaud.ai/auth/login endpoint
+- Modified CLI to focus on export operations instead of just login
+- Updated configuration options (removed browser-specific settings)
+- Updated project structure with export.py module
+
+### Removed
+- Playwright dependency and browser automation code
+- Browser-specific configuration options (HEADLESS, BROWSER_TIMEOUT)
+- Screenshot functionality (no longer applicable with API approach)
+
+### Fixed
+- Resolved authentication issues with proper Bearer token format
+- Fixed file listing API response parsing
+- Added non-interactive mode to prevent hanging on user input
+- Improved error handling for API failures and timeouts
 
 ## [0.1.0] - 2025-10-29
 

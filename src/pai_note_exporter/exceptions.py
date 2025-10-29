@@ -29,3 +29,9 @@ class TimeoutError(PaiNoteExporterError):
     """Raised when operations timeout."""
 
     pass
+
+
+class APIError(PaiNoteExporterError):
+    """Raised when API operations fail."""
+
+    pass
