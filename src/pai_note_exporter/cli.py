@@ -13,9 +13,10 @@ from pai_note_exporter.exceptions import (
     ConfigurationError,
     TimeoutError,
 )
+from pai_note_exporter.export import PlaudAIExporter
 from pai_note_exporter.logger import setup_logger
 from pai_note_exporter.login import PlaudAILogin
-from pai_note_exporter.export import PlaudAIExporter
+from pai_note_exporter.text_processor import TextProcessor
 
 
 def parse_args() -> argparse.Namespace:
@@ -174,7 +175,7 @@ async def login_command(
                 logger.info("Login successful!")
                 current_url = await login.get_current_url()
                 logger.info(f"Current URL: {current_url}")
-                
+
                 # Store token for potential reuse
                 if token:
                     logger.info("Auth token extracted and available for API calls")
@@ -254,6 +255,9 @@ async def export_command(
         # Set up logger
         logger = setup_logger(__name__, config.log_level, config.log_file)
         logger.info("Starting Pai Note Exporter - Export Mode")
+
+        # Initialize text processor for cleaning transcription content
+        text_processor = TextProcessor(config.log_level, config.log_file)
 
         # First, login to get the auth token
         print("🔐 Logging into Plaud.ai...")
@@ -346,7 +350,7 @@ async def export_command(
                         if not skip_transcription:
                             # Check if file has transcription
                             has_transcription = file_info.get("is_trans", False)
-                            
+
                             if has_transcription:
                                 # Export transcription
                                 print(f"  📝 Exporting transcription as {export_format.upper()}...")
@@ -360,6 +364,16 @@ async def export_command(
                                     with_timestamp=1,
                                 )
 
+                                # Process transcription content for better readability
+                                try:
+                                    raw_text = transcription_data.decode('utf-8')
+                                    processed_text = text_processor.process_transcription(raw_text)
+                                    transcription_data = processed_text.encode('utf-8')
+                                    print("  ✓ Transcription processed and cleaned")
+                                except Exception as e:
+                                    logger.warning(f"Failed to process transcription text: {e}")
+                                    print("  ⚠️ Transcription processing failed, saving raw content")
+
                                 # Save transcription
                                 trans_filename = f"{filename}_transcript.{export_format.lower()}"
                                 trans_path = output_dir / trans_filename
@@ -367,9 +381,9 @@ async def export_command(
                                     f.write(transcription_data)
                                 print(f"  ✓ Transcription saved: {trans_path}")
                             else:
-                                print(f"  📝 Skipping transcription export (file not transcribed)")
+                                print("  📝 Skipping transcription export (file not transcribed)")
                         else:
-                            print(f"  📝 Skipping transcription export (--skip-transcription)")
+                            print("  📝 Skipping transcription export (--skip-transcription)")
 
                         # Export audio if requested
                         if include_audio:
@@ -380,7 +394,7 @@ async def export_command(
                             )
                             print(f"  ✓ Audio saved: {audio_path}")
                         else:
-                            print(f"  🎵 Skipping audio download (use --include-audio to download)")
+                            print("  🎵 Skipping audio download (use --include-audio to download)")
 
                     except APIError as e:
                         print(f"  ✗ Failed to export {filename}: {e}")

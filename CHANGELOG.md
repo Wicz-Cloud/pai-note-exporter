@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Export functionality for recordings and transcriptions
 - CLI export command with interactive and non-interactive modes
 - Audio file download capability
+- **Text processor module for cleaning and formatting transcriptions**
+- **Automatic transcription text processing (removes JSON wrappers, handles unicode)**
 - Bearer token authentication for API calls
 - Export directory configuration
 - --all flag for non-interactive export of all files

@@ -186,10 +186,10 @@ class TestClassName:
         """Test specific feature behavior."""
         # Arrange
         expected = "expected_value"
-        
+
         # Act
         result = function_to_test(setup_data)
-        
+
         # Assert
         assert result == expected
 ```

@@ -1,13 +1,11 @@
 """Plaud.ai login functionality using direct API calls."""
 
-import asyncio
 import json
-from typing import Any
 
 import httpx
 
 from pai_note_exporter.config import Config
-from pai_note_exporter.exceptions import AuthenticationError, BrowserError, TimeoutError
+from pai_note_exporter.exceptions import AuthenticationError, TimeoutError
 from pai_note_exporter.logger import setup_logger
 
 

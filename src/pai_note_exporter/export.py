@@ -1,14 +1,12 @@
 """Plaud.ai export functionality using REST API."""
 
-import asyncio
-import json
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import httpx
 
 from pai_note_exporter.config import Config
-from pai_note_exporter.exceptions import APIError, AuthenticationError
+from pai_note_exporter.exceptions import APIError
 from pai_note_exporter.logger import setup_logger
 
 
@@ -42,12 +40,19 @@ class PlaudAIExporter:
             log_level=config.log_level,
             log_file=config.log_file,
         )
+
+        # Generate device ID (same format as seen in HAR file)
+        import uuid
+        device_id = str(uuid.uuid4()).replace('-', '')[:18]  # 18 chars like in HAR
+
         self.client = httpx.AsyncClient(
             timeout=30.0,
             headers={
                 "Authorization": f"Bearer {token}",
                 "edit-from": "web",
                 "app-platform": "web",
+                "x-device-id": device_id,
+                "x-pld-tag": device_id,
                 "Content-Type": "application/json",
             }
         )
@@ -67,7 +72,7 @@ class PlaudAIExporter:
         is_trash: int = 2,
         sort_by: str = "start_time",
         is_desc: bool = True
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """List files from Plaud.ai.
 
         Args:
@@ -101,7 +106,12 @@ class PlaudAIExporter:
             self.logger.debug(f"Raw API response: {data}")
             # The API returns an object with data_file_list containing the files
             files = data.get("data_file_list", [])
-            self.logger.info(f"Retrieved {len(files)} files")
+
+            # Filter out files in trash as additional safety measure
+            # (API parameter is_trash=2 should do this, but filter client-side too)
+            files = [f for f in files if not f.get("is_trash", False)]
+
+            self.logger.info(f"Retrieved {len(files)} files (filtered out trash)")
             return files
 
         except httpx.HTTPStatusError as e:
@@ -111,11 +121,105 @@ class PlaudAIExporter:
             self.logger.error(f"Unexpected error listing files: {e}")
             raise APIError(f"Unexpected error listing files: {e}") from e
 
+    async def get_transcription_content(self, file_id: str) -> str | None:
+        """Get transcription content for a file using various API endpoints.
+
+        Args:
+            file_id: ID of the file
+
+        Returns:
+            Transcription content as string, or None if not available
+
+        Raises:
+            APIError: If the API request fails
+        """
+        # Try multiple endpoints that might contain transcription data
+
+        # 1. Try /ai/transsumm/{file_id} - looks most promising
+        try:
+            url = f"{self.BASE_URL}/ai/transsumm/{file_id}"
+            self.logger.debug(f"Trying /ai/transsumm/{file_id}")
+            response = await self.client.get(url)
+            response.raise_for_status()
+            data = response.json()
+            self.logger.debug(f"/ai/transsumm response: {data}")
+
+            # Check if it contains transcription data
+            if data.get("status") == 0 and "data" in data:
+                trans_data = data["data"]
+                if isinstance(trans_data, dict) and "trans_result" in trans_data:
+                    trans_result = trans_data["trans_result"]
+                    if isinstance(trans_result, list) and trans_result:
+                        # Convert transcription segments to text
+                        content = ""
+                        for segment in trans_result:
+                            if isinstance(segment, dict) and "content" in segment:
+                                content += segment["content"] + " "
+                        return content.strip()
+            elif data.get("status") == -1:
+                self.logger.debug(f"/ai/transsumm failed: {data.get('msg')}")
+
+        except Exception as e:
+            self.logger.debug(f"/ai/transsumm failed: {e}")
+
+        # 2. Try /file/{file_id} - detailed file endpoint
+        try:
+            url = f"{self.BASE_URL}/file/{file_id}"
+            self.logger.debug(f"Trying /file/{file_id}")
+            response = await self.client.get(url)
+            response.raise_for_status()
+            data = response.json()
+            self.logger.debug(f"/file/{file_id} response: {data}")
+
+            if data.get("status") == 0 and "data" in data:
+                file_data = data["data"]
+                if isinstance(file_data, dict) and "trans_result" in file_data:
+                    trans_result = file_data["trans_result"]
+                    if isinstance(trans_result, list) and trans_result:
+                        # Convert transcription segments to text
+                        content = ""
+                        for segment in trans_result:
+                            if isinstance(segment, dict) and "content" in segment:
+                                content += segment["content"] + " "
+                        return content.strip()
+
+        except Exception as e:
+            self.logger.debug(f"/file/{file_id} failed: {e}")
+
+        # 3. Try /ai/query_note with file-id header - this is the working endpoint
+        try:
+            url = f"{self.BASE_URL}/ai/query_note"
+            self.logger.debug("Trying /ai/query_note with file-id header")
+            response = await self.client.get(url, headers={"file-id": file_id})
+            response.raise_for_status()
+            data = response.json()
+            self.logger.debug(f"/ai/query_note response: {data}")
+
+            if data.get("status") == 0 and "data" in data:
+                query_data = data["data"]
+                if isinstance(query_data, list) and query_data:
+                    # Get the first item (should contain transcription data)
+                    item = query_data[0]
+                    if isinstance(item, dict) and "data_content" in item:
+                        content = item["data_content"]
+                        if isinstance(content, str) and content.strip():
+                            self.logger.info(f"Found transcription content via /ai/query_note: {len(content)} chars")
+                            return content.strip()
+
+        except Exception as e:
+            self.logger.debug(f"/ai/query_note failed: {e}")
+
+        except Exception as e:
+            self.logger.debug(f"/ai/query_note failed: {e}")
+
+        self.logger.debug(f"No transcription content found for file {file_id}")
+        return None
+
     async def get_temp_url(self, file_id: str) -> str:
         """Get temporary download URL for a file.
 
         Args:
-            file_id: ID of the file to download
+            file_id: ID of the file
 
         Returns:
             Temporary download URL
@@ -125,18 +229,32 @@ class PlaudAIExporter:
         """
         url = f"{self.BASE_URL}/file/temp-url/{file_id}"
 
+        # Generate request ID (similar format to what was seen in HAR)
+        import uuid
+        request_id = str(uuid.uuid4()).replace('-', '')[:11]  # 11 chars like in HAR
+
+        headers = {"x-request-id": request_id}
+
         try:
-            self.logger.debug(f"Getting temp URL for file: {file_id}")
-            response = await self.client.get(url)
+            self.logger.debug(f"Getting temp URL for file {file_id}")
+            response = await self.client.get(url, headers=headers)
             response.raise_for_status()
 
             data = response.json()
-            temp_url = data.get("temp_url")
-            if not temp_url:
-                raise APIError("No temp_url in response")
+            self.logger.debug(f"Temp URL response: {data}")
 
-            self.logger.debug(f"Got temp URL for file {file_id}")
-            return temp_url
+            if data.get("status") == 0 and "temp_url" in data:
+                temp_url = data["temp_url"]
+                if isinstance(temp_url, str) and temp_url.startswith("https://"):
+                    self.logger.info(f"Got temp URL for file {file_id}")
+                    return temp_url
+                else:
+                    self.logger.error(f"Invalid temp URL format: {temp_url}")
+                    raise APIError(f"Invalid temp URL format: {temp_url}")
+            else:
+                error_msg = data.get('msg', 'Unknown error')
+                self.logger.error(f"Temp URL API returned error: {error_msg}")
+                raise APIError(f"Failed to get temp URL: {error_msg}")
 
         except httpx.HTTPStatusError as e:
             self.logger.error(f"API error getting temp URL: {e.response.status_code} - {e.response.text}")
@@ -187,9 +305,8 @@ class PlaudAIExporter:
         }
 
         if prompt_type == "trans":
-            # Only include trans_content if we have content
-            if content:
-                payload["trans_content"] = content if isinstance(content, list) else [content]
+            # For transcription, don't pass content - let the API generate it server-side
+            pass
         elif prompt_type == "summary":
             if content:
                 payload["summary_content"] = content
@@ -207,7 +324,9 @@ class PlaudAIExporter:
                     # Return the data field which should contain the file content
                     return data["data"]
                 elif data.get("status") == -1:
-                    raise APIError(f"Export failed: {data.get('msg', 'Unknown error')}")
+                    error_msg = data.get('msg', 'Unknown error')
+                    self.logger.error(f"Export API returned error: {error_msg}")
+                    raise APIError(f"Export failed: {error_msg}")
                 else:
                     # Maybe the content is in the response directly
                     self.logger.debug(f"Response content type: {response.headers.get('content-type')}")
@@ -216,6 +335,7 @@ class PlaudAIExporter:
                     if hasattr(response, 'content') and response.content:
                         return response.content
                     else:
+                        self.logger.error(f"Unexpected response format: {data}")
                         raise APIError(f"Unexpected response format: {data}")
             else:
                 # Direct file content
@@ -262,7 +382,7 @@ class PlaudAIExporter:
             self.logger.error(f"Error downloading file: {e}")
             raise APIError(f"Failed to download file: {e}") from e
 
-    def format_file_info(self, file_info: Dict[str, Any]) -> str:
+    def format_file_info(self, file_info: dict[str, Any]) -> str:
         """Format file information for display.
 
         Args:
@@ -290,3 +410,116 @@ class PlaudAIExporter:
             time_str = str(start_time)
 
         return f"[{file_id[:8]}] {filename} - {duration_str} - {time_str}"
+
+    async def probe_ai_query_source(self, file_id: str) -> dict[str, Any]:
+        """Probe the /ai/query_source endpoint with a specific file ID.
+
+        Args:
+            file_id: The file ID to query for
+
+        Returns:
+            API response data
+
+        Raises:
+            APIError: If the API request fails
+        """
+        url = f"{self.BASE_URL}/ai/query_source"
+
+        try:
+            self.logger.debug(f"Probing /ai/query_source for file {file_id}")
+            response = await self.client.get(url, headers={"file-id": file_id})
+            response.raise_for_status()
+
+            data = response.json()
+            self.logger.debug(f"/ai/query_source response: {data}")
+            return data
+
+        except httpx.HTTPStatusError as e:
+            self.logger.error(f"API error probing /ai/query_source: {e.response.status_code} - {e.response.text}")
+            raise APIError(f"Failed to probe /ai/query_source: {e.response.status_code}") from e
+        except Exception as e:
+            self.logger.error(f"Unexpected error probing /ai/query_source: {e}")
+            raise APIError(f"Unexpected error probing /ai/query_source: {e}") from e
+
+    async def probe_ai_trans_status(self) -> dict[str, Any]:
+        """Probe the /ai/trans-status endpoint.
+
+        Returns:
+            API response data
+
+        Raises:
+            APIError: If the API request fails
+        """
+        url = f"{self.BASE_URL}/ai/trans-status"
+
+        try:
+            self.logger.debug("Probing /ai/trans-status")
+            response = await self.client.get(url)
+            response.raise_for_status()
+
+            data = response.json()
+            self.logger.debug(f"/ai/trans-status response: {data}")
+            return data
+
+        except httpx.HTTPStatusError as e:
+            self.logger.error(f"API error probing /ai/trans-status: {e.response.status_code} - {e.response.text}")
+            raise APIError(f"Failed to probe /ai/trans-status: {e.response.status_code}") from e
+        except Exception as e:
+            self.logger.error(f"Unexpected error probing /ai/trans-status: {e}")
+            raise APIError(f"Unexpected error probing /ai/trans-status: {e}") from e
+
+    async def probe_file_list_detailed(self) -> list[dict[str, Any]]:
+        """Probe the /file/list endpoint with support_mul_summ=true as query parameter.
+
+        Returns:
+            List of files from detailed endpoint
+
+        Raises:
+            APIError: If the API request fails
+        """
+        url = f"{self.BASE_URL}/file/list?support_mul_summ=true"
+
+        try:
+            self.logger.debug("Probing /file/list with support_mul_summ=true")
+            response = await self.client.post(url)
+            response.raise_for_status()
+
+            data = response.json()
+            self.logger.debug(f"/file/list detailed response: {data}")
+
+            files = data.get("data_file_list", [])
+            self.logger.info(f"Retrieved {len(files)} files from detailed endpoint")
+            return files
+
+        except httpx.HTTPStatusError as e:
+            self.logger.error(f"API error probing /file/list detailed: {e.response.status_code} - {e.response.text}")
+            raise APIError(f"Failed to probe /file/list detailed: {e.response.status_code}") from e
+    async def probe_ai_query_note(self, file_id: str) -> dict[str, Any]:
+        """Probe the /ai/query_note endpoint with a specific file ID.
+
+        Args:
+            file_id: The file ID to query for
+
+        Returns:
+            API response data
+
+        Raises:
+            APIError: If the API request fails
+        """
+        url = f"{self.BASE_URL}/ai/query_note"
+
+        try:
+            self.logger.debug(f"Probing /ai/query_note for file {file_id}")
+            response = await self.client.get(url, headers={"file-id": file_id})
+            response.raise_for_status()
+
+            data = response.json()
+            self.logger.debug(f"/ai/query_note response: {data}")
+            return data
+
+        except httpx.HTTPStatusError as e:
+            self.logger.error(f"API error probing /ai/query_note: {e.response.status_code} - {e.response.text}")
+            raise APIError(f"Failed to probe /ai/query_note: {e.response.status_code}") from e
+        except Exception as e:
+            self.logger.error(f"Unexpected error probing /ai/query_note: {e}")
+            raise APIError(f"Unexpected error probing /ai/query_note: {e}") from e

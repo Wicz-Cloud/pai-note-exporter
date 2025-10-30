@@ -23,6 +23,9 @@ A Python 3.11+ program that authenticates with Plaud.ai API and exports recordin
 
 - 🔐 Secure authentication with Plaud.ai API using Bearer tokens
 - 📥 Export recordings and transcriptions from Plaud.ai
+- 📝 Automatic transcription text processing and formatting
+- 🎵 Audio file download with temporary URL generation
+- 📚 Clean, readable transcription output (removes JSON wrappers, handles unicode)
 - 📝 Comprehensive logging with configurable levels
 - 🛡️ Robust error handling with custom exceptions
 - ⚙️ Configuration via environment variables (.env file)
@@ -138,16 +141,16 @@ from pai_note_exporter.export import PlaudAIExporter
 async def main():
     # Load configuration from .env
     config = Config.from_env()
-    
+
     # Login and get access token
     token = await login(config)
     print("Successfully authenticated!")
-    
+
     # Create exporter and list files
     exporter = PlaudAIExporter(token, config)
     files = await exporter.list_files()
     print(f"Found {len(files)} recordings")
-    
+
     # Export specific file
     if files:
         await exporter.download_file(files[0], include_audio=True)
@@ -219,7 +222,9 @@ pai-note-exporter/
 │       ├── exceptions.py        # Custom exceptions
 │       ├── export.py            # Plaud.ai export functionality
 │       ├── logger.py            # Logging setup
-│       └── login.py             # Plaud.ai API authentication
+│       ├── login.py             # Plaud.ai API authentication
+│       ├── text_processor.py    # Transcription text processing and formatting
+│       └── audio_processor.py   # Audio file processing and summary generation
 ├── tests/
 │   ├── __init__.py
 │   ├── test_config.py
