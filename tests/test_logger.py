@@ -30,6 +30,12 @@ class TestLogger:
             assert any(isinstance(h, logging.FileHandler) for h in logger.handlers)
             assert log_file.exists()
 
+            # Close file handlers to allow cleanup on Windows
+            for handler in logger.handlers:
+                if isinstance(handler, logging.FileHandler):
+                    handler.close()
+                    logger.removeHandler(handler)
+
     def test_setup_logger_prevents_duplicate_handlers(self) -> None:
         """Test that calling setup_logger twice doesn't add duplicate handlers."""
         logger_name = "test_logger_duplicate"
