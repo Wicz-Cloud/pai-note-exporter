@@ -47,9 +47,18 @@ jobs:
     - name: Run performance benchmarks
       run: pytest tests/ --benchmark-only --benchmark-json=benchmark.json
 
+    - name: Check if benchmarks exist
+      id: check-benchmarks
+      run: |
+        if [ -f benchmark.json ] && [ -s benchmark.json ]; then
+          echo "benchmarks_exist=true" >> $GITHUB_OUTPUT
+        else
+          echo "benchmarks_exist=false" >> $GITHUB_OUTPUT
+        fi
+
     - name: Store benchmark result
       uses: benchmark-action/github-action-benchmark@v1
-      if: github.event_name != 'pull_request'
+      if: github.event_name != 'pull_request' && steps.check-benchmarks.outputs.benchmarks_exist == 'true'
       with:
         name: Python Benchmark
         tool: 'pytest'
@@ -58,7 +67,7 @@ jobs:
         auto-push: true
 
     - name: Compare benchmarks
-      if: github.event_name == 'pull_request'
+      if: github.event_name == 'pull_request' && steps.check-benchmarks.outputs.benchmarks_exist == 'true'
       uses: benchmark-action/github-action-benchmark@v1
       with:
         name: Python Benchmark
