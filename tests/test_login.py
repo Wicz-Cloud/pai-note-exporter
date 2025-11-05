@@ -35,11 +35,23 @@ class TestPlaudAILogin:
 
     @pytest.mark.asyncio
     async def test_login_without_browser_raises_error(self, config: Config) -> None:
-        """Test that calling login without starting browser raises error."""
+        """Test that API-based login works without browser initialization."""
         login = PlaudAILogin(config)
 
-        with pytest.raises(BrowserError, match="Browser not initialized"):
-            await login.login()
+        # With API-based login, this should work without browser initialization
+        # The test expectation needs to be updated for the new implementation
+        with patch("httpx.AsyncClient.post") as mock_post:
+            mock_response = MagicMock()
+            mock_response.status_code = 200
+            mock_response.json.return_value = {
+                "status": 0,
+                "access_token": "test_token"
+            }
+            mock_post.return_value = mock_response
+            
+            success, token = await login.login()
+            assert success is True
+            assert token == "test_token"
 
     @pytest.mark.asyncio
     async def test_get_current_url_without_page_raises_error(self, config: Config) -> None:

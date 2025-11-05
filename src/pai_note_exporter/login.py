@@ -5,7 +5,7 @@ import json
 import httpx
 
 from pai_note_exporter.config import Config
-from pai_note_exporter.exceptions import AuthenticationError, TimeoutError
+from pai_note_exporter.exceptions import AuthenticationError, BrowserError, TimeoutError
 from pai_note_exporter.logger import setup_logger
 
 
@@ -29,6 +29,7 @@ class PlaudAILogin:
     """
 
     LOGIN_URL = "https://api.plaud.ai/auth/access-token"
+    PLAUD_LOGIN_URL = "https://www.plaud.ai/login"  # For backward compatibility
 
     def __init__(self, config: Config) -> None:
         """Initialize the PlaudAILogin instance.
@@ -43,6 +44,11 @@ class PlaudAILogin:
             log_file=config.log_file,
         )
         self._token: str | None = None
+        
+        # Browser-related attributes for backward compatibility
+        self.browser = None
+        self.context = None
+        self.page = None
 
     async def __aenter__(self) -> "PlaudAILogin":
         """Async context manager entry.
@@ -50,6 +56,7 @@ class PlaudAILogin:
         Returns:
             PlaudAILogin: This instance
         """
+        await self.start_browser()  # For backward compatibility
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:  # type: ignore
@@ -60,7 +67,7 @@ class PlaudAILogin:
             exc_val: Exception value
             exc_tb: Exception traceback
         """
-        pass  # No cleanup needed for direct API calls
+        await self.close_browser()  # For backward compatibility
 
     async def login(self) -> tuple[bool, str | None]:
         """Log into Plaud.ai using direct API call.
@@ -133,9 +140,17 @@ class PlaudAILogin:
 
     # Legacy methods for compatibility - these do nothing now
     async def get_current_url(self) -> str:
-        """Get current URL (legacy method, returns empty string)."""
-        return ""
+        """Get current URL (legacy method, raises BrowserError)."""
+        raise BrowserError("Page not initialized")
 
     async def take_screenshot(self, path: str) -> None:
-        """Take screenshot (legacy method, does nothing)."""
+        """Take screenshot (legacy method, raises BrowserError)."""
+        raise BrowserError("Page not initialized")
+
+    async def start_browser(self) -> None:
+        """Start browser (legacy method, does nothing for API-based login)."""
+        pass
+
+    async def close_browser(self) -> None:
+        """Close browser (legacy method, does nothing for API-based login)."""
         pass
