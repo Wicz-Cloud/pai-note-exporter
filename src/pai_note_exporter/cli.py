@@ -370,7 +370,7 @@ async def export_single_file(
 
         if has_transcription or has_summary:
             # Try to download transcription first, then summary if that fails
-            transcription_data = None
+            transcription_data: str | bytes | None = None
             export_type = None
 
             if has_transcription:
@@ -415,14 +415,14 @@ async def export_single_file(
                     raw_text = transcription_data
                 else:
                     # transcription_data is bytes from export_transcription
-                    raw_text = transcription_data.decode("utf-8")
+                    raw_text = transcription_data.decode("utf-8")  # type: ignore[union-attr]
 
                 processed_text = text_processor.process_transcription(raw_text)
                 transcription_data = processed_text.encode("utf-8")
-                print(f"  ✓ {export_type.title()} processed and cleaned")
+                print(f"  ✓ {export_type.title()} processed and cleaned")  # type: ignore[union-attr]
             except Exception as e:
                 logger.warning(f"Failed to process {export_type} text: {e}")
-                print(f"  ⚠️ {export_type.title()} processing failed, saving raw content")
+                print(f"  ⚠️ {export_type.title()} processing failed, saving raw content")  # type: ignore[union-attr]
 
                 # Ensure transcription_data is bytes for file writing
                 if isinstance(transcription_data, str):
@@ -433,8 +433,8 @@ async def export_single_file(
             trans_filename = f"{filename}_{content_type}.{export_format.lower()}"
             trans_path = output_dir / trans_filename
             with open(trans_path, "wb") as f:
-                f.write(transcription_data)
-            print(f"  ✓ {export_type.title()} saved to {trans_path}")
+                f.write(transcription_data)  # type: ignore[arg-type]
+            print(f"  ✓ {export_type.title()} saved to {trans_path}")  # type: ignore[union-attr]
         else:
             print("  📝 Skipping transcription export (file not transcribed)")
     else:
@@ -544,7 +544,7 @@ async def export_command(
                                 print("No recordings selected. Exiting.")
                                 return 0
                             else:
-                                indices = []
+                                indices: list[int] = []
                                 for part in selection.split(","):
                                     part = part.strip()
                                     if "-" in part:
@@ -935,7 +935,7 @@ async def generate_command(
                                 print("No recordings selected. Exiting.")
                                 return 0
                             else:
-                                indices = []
+                                indices: list[int] = []
                                 for part in selection.split(","):
                                     part = part.strip()
                                     if "-" in part:

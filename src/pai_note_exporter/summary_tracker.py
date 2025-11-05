@@ -40,7 +40,8 @@ class SummaryTracker:
         """
         try:
             with open(self.tracking_file) as f:
-                return json.load(f)
+                data = json.load(f)
+                return data if isinstance(data, dict) else {}
         except (FileNotFoundError, json.JSONDecodeError):
             return {}
 

@@ -1,7 +1,7 @@
 """Audio processing module for generating summaries/transcriptions for audio-only recordings in Plaud.ai."""
 
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 import httpx
 
@@ -137,6 +137,21 @@ class PlaudAudioProcessor:
         """
         return await self._export_content(file_id, "trans", to_format)
 
+    async def generate_summary(self, file_id: str, to_format: str = "TXT") -> bytes:
+        """Generate summary for a recording.
+
+        Args:
+            file_id: ID of the recording file
+            to_format: Export format ("TXT", "DOCX", "PDF", "SRT")
+
+        Returns:
+            Summary content as bytes
+
+        Raises:
+            APIError: If the API request fails
+        """
+        return await self._export_content(file_id, "summary", to_format)
+
     async def trigger_transcription_and_summary(self, file_id: str) -> bool:
         """Trigger transcription and summary generation for a recording.
 
@@ -193,7 +208,7 @@ class PlaudAudioProcessor:
         create_time: str | None = None,
         with_speaker: int = 0,
         with_timestamp: int = 0,
-        content: str | None = None,
+        content: str | list[str] | None = None,
     ) -> bytes:
         """Export transcription/summary content for a file.
 
@@ -215,7 +230,7 @@ class PlaudAudioProcessor:
         """
         url = f"{self.BASE_URL}/file/document/export"
 
-        payload = {
+        payload: dict[str, Any] = {
             "file_id": file_id,
             "prompt_type": prompt_type,
             "to_format": to_format.upper(),
@@ -237,7 +252,13 @@ class PlaudAudioProcessor:
 
             data = response.json()
             if data.get("status") == 0 and "data" in data:
-                return data["data"]
+                content = data["data"]
+                if isinstance(content, str):
+                    return content.encode('utf-8')
+                elif isinstance(content, bytes):
+                    return content
+                else:
+                    return str(content).encode('utf-8')
             elif data.get("status") == -1:
                 raise APIError(f"Export failed: {data.get('msg', 'Unknown error')}")
             else:
@@ -263,7 +284,7 @@ class PlaudAudioProcessor:
         generate_transcription: bool = True,
         generate_summary: bool = True,
         output_dir: Path | None = None,
-        progress_callback: callable | None = None,
+        progress_callback: Callable | None = None,
     ) -> list[dict[str, Any]]:
         """Process audio-only recordings: find them and generate transcription/summary.
 

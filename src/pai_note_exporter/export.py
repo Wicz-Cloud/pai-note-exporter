@@ -100,7 +100,7 @@ class PlaudAIExporter:
 
         try:
             self.logger.debug(f"Listing files: {params}")
-            response = await self.client.get(url, params=params)
+            response = await self.client.get(url, params=params)  # type: ignore[arg-type]
             response.raise_for_status()
 
             data = response.json()
@@ -326,7 +326,13 @@ class PlaudAIExporter:
                 self.logger.debug(f"Export API response: {data}")
                 if data.get("status") == 0 and "data" in data:
                     # Return the data field which should contain the file content
-                    return data["data"]
+                    content = data["data"]
+                    if isinstance(content, str):
+                        return content.encode('utf-8')
+                    elif isinstance(content, bytes):
+                        return content
+                    else:
+                        return str(content).encode('utf-8')
                 elif data.get("status") == -1:
                     error_msg = data.get("msg", "Unknown error")
                     self.logger.error(f"Export API returned error: {error_msg}")
@@ -443,7 +449,7 @@ class PlaudAIExporter:
 
             data = response.json()
             self.logger.debug(f"/ai/query_source response: {data}")
-            return data
+            return data if isinstance(data, dict) else {}
 
         except httpx.HTTPStatusError as e:
             self.logger.error(
@@ -472,7 +478,7 @@ class PlaudAIExporter:
 
             data = response.json()
             self.logger.debug(f"/ai/trans-status response: {data}")
-            return data
+            return data if isinstance(data, dict) else {}
 
         except httpx.HTTPStatusError as e:
             self.logger.error(
@@ -504,7 +510,7 @@ class PlaudAIExporter:
 
             files = data.get("data_file_list", [])
             self.logger.info(f"Retrieved {len(files)} files from detailed endpoint")
-            return files
+            return files if isinstance(files, list) else []
 
         except httpx.HTTPStatusError as e:
             self.logger.error(
@@ -533,7 +539,7 @@ class PlaudAIExporter:
 
             data = response.json()
             self.logger.debug(f"/ai/query_note response: {data}")
-            return data
+            return data if isinstance(data, dict) else {}
 
         except httpx.HTTPStatusError as e:
             self.logger.error(
