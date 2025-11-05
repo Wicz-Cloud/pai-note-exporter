@@ -255,11 +255,11 @@ class PlaudAudioProcessor:
             if data.get("status") == 0 and "data" in data:
                 content = data["data"]
                 if isinstance(content, str):
-                    return content.encode('utf-8')
+                    return content.encode("utf-8")
                 elif isinstance(content, bytes):
                     return content
                 else:
-                    return str(content).encode('utf-8')
+                    return str(content).encode("utf-8")
             elif data.get("status") == -1:
                 raise APIError(f"Export failed: {data.get('msg', 'Unknown error')}")
             else:
