@@ -55,8 +55,7 @@ jobs:
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
-        with:
-          enablement: true
+        continue-on-error: true
 
       - name: Build with MkDocs
         run: mkdocs build --clean

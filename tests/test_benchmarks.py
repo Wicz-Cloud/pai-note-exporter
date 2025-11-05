@@ -13,7 +13,7 @@ class TestBenchmarks:
     def sample_transcription_data(self) -> dict:
         """Sample transcription data for benchmarking."""
         return {
-            "transcription": "This is a sample transcription text that contains multiple sentences. "
+            "text": "This is a sample transcription text that contains multiple sentences. "
             "It has various punctuation marks and formatting that needs to be processed. "
             "The text processor should handle this efficiently and quickly. "
             "Performance is important for large transcription files."

@@ -46,7 +46,6 @@ jobs:
 
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
         pip install -e ".[dev]"
 
     - name: Install Playwright browsers
@@ -85,7 +84,6 @@ jobs:
 
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
         pip install -e ".[dev]"
 
     - name: Run Ruff linter
@@ -122,7 +120,6 @@ jobs:
 
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
         pip install -e ".[dev]"
         pip install bandit safety
 
