@@ -13,12 +13,10 @@ class TestBenchmarks:
     def sample_transcription_data(self) -> dict:
         """Sample transcription data for benchmarking."""
         return {
-            "transcription": {
-                "text": "This is a sample transcription text that contains multiple sentences. "
-                "It has various punctuation marks and formatting that needs to be processed. "
-                "The text processor should handle this efficiently and quickly. "
-                "Performance is important for large transcription files."
-            }
+            "transcription": "This is a sample transcription text that contains multiple sentences. "
+            "It has various punctuation marks and formatting that needs to be processed. "
+            "The text processor should handle this efficiently and quickly. "
+            "Performance is important for large transcription files."
         }
 
     @pytest.fixture
@@ -34,12 +32,12 @@ class TestBenchmarks:
 
     def test_config_validation_performance(self, benchmark):
         """Benchmark configuration validation performance."""
-        config_data = {
-            "email": "test@example.com",
-            "password": "test_password",  # pragma: allowlist secret - test data only
-            "log_level": "INFO",
-            "timeout": 30,
-            "headless": True,
-        }
+        config = Config(
+            plaud_email="test@example.com",
+            plaud_password="test_password",  # pragma: allowlist secret - test data only
+            log_level="INFO",
+            browser_timeout=30,
+            headless=True,
+        )
 
-        benchmark(Config.from_dict, config_data)
+        benchmark(config.validate)

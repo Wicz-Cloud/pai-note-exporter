@@ -1,7 +1,8 @@
 """Audio processing module for generating summaries/transcriptions for audio-only recordings in Plaud.ai."""
 
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 import httpx
 
