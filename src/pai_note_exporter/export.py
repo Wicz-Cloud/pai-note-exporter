@@ -43,7 +43,8 @@ class PlaudAIExporter:
 
         # Generate device ID (same format as seen in HAR file)
         import uuid
-        device_id = str(uuid.uuid4()).replace('-', '')[:18]  # 18 chars like in HAR
+
+        device_id = str(uuid.uuid4()).replace("-", "")[:18]  # 18 chars like in HAR
 
         self.client = httpx.AsyncClient(
             timeout=30.0,
@@ -54,7 +55,7 @@ class PlaudAIExporter:
                 "x-device-id": device_id,
                 "x-pld-tag": device_id,
                 "Content-Type": "application/json",
-            }
+            },
         )
 
     async def __aenter__(self) -> "PlaudAIExporter":
@@ -71,7 +72,7 @@ class PlaudAIExporter:
         limit: int = 20,
         is_trash: int = 2,
         sort_by: str = "start_time",
-        is_desc: bool = True
+        is_desc: bool = True,
     ) -> list[dict[str, Any]]:
         """List files from Plaud.ai.
 
@@ -115,7 +116,9 @@ class PlaudAIExporter:
             return files
 
         except httpx.HTTPStatusError as e:
-            self.logger.error(f"API error listing files: {e.response.status_code} - {e.response.text}")
+            self.logger.error(
+                f"API error listing files: {e.response.status_code} - {e.response.text}"
+            )
             raise APIError(f"Failed to list files: {e.response.status_code}") from e
         except Exception as e:
             self.logger.error(f"Unexpected error listing files: {e}")
@@ -203,7 +206,9 @@ class PlaudAIExporter:
                     if isinstance(item, dict) and "data_content" in item:
                         content = item["data_content"]
                         if isinstance(content, str) and content.strip():
-                            self.logger.info(f"Found transcription content via /ai/query_note: {len(content)} chars")
+                            self.logger.info(
+                                f"Found transcription content via /ai/query_note: {len(content)} chars"
+                            )
                             return content.strip()
 
         except Exception as e:
@@ -231,7 +236,8 @@ class PlaudAIExporter:
 
         # Generate request ID (similar format to what was seen in HAR)
         import uuid
-        request_id = str(uuid.uuid4()).replace('-', '')[:11]  # 11 chars like in HAR
+
+        request_id = str(uuid.uuid4()).replace("-", "")[:11]  # 11 chars like in HAR
 
         headers = {"x-request-id": request_id}
 
@@ -252,12 +258,14 @@ class PlaudAIExporter:
                     self.logger.error(f"Invalid temp URL format: {temp_url}")
                     raise APIError(f"Invalid temp URL format: {temp_url}")
             else:
-                error_msg = data.get('msg', 'Unknown error')
+                error_msg = data.get("msg", "Unknown error")
                 self.logger.error(f"Temp URL API returned error: {error_msg}")
                 raise APIError(f"Failed to get temp URL: {error_msg}")
 
         except httpx.HTTPStatusError as e:
-            self.logger.error(f"API error getting temp URL: {e.response.status_code} - {e.response.text}")
+            self.logger.error(
+                f"API error getting temp URL: {e.response.status_code} - {e.response.text}"
+            )
             raise APIError(f"Failed to get temp URL: {e.response.status_code}") from e
         except Exception as e:
             self.logger.error(f"Unexpected error getting temp URL: {e}")
@@ -272,7 +280,7 @@ class PlaudAIExporter:
         create_time: str | None = None,
         with_speaker: int = 0,
         with_timestamp: int = 0,
-        content: str | None = None
+        content: str | None = None,
     ) -> bytes:
         """Export transcription/summary for a file.
 
@@ -324,15 +332,17 @@ class PlaudAIExporter:
                     # Return the data field which should contain the file content
                     return data["data"]
                 elif data.get("status") == -1:
-                    error_msg = data.get('msg', 'Unknown error')
+                    error_msg = data.get("msg", "Unknown error")
                     self.logger.error(f"Export API returned error: {error_msg}")
                     raise APIError(f"Export failed: {error_msg}")
                 else:
                     # Maybe the content is in the response directly
-                    self.logger.debug(f"Response content type: {response.headers.get('content-type')}")
+                    self.logger.debug(
+                        f"Response content type: {response.headers.get('content-type')}"
+                    )
                     self.logger.debug(f"Response headers: {dict(response.headers)}")
                     # Check if response has content
-                    if hasattr(response, 'content') and response.content:
+                    if hasattr(response, "content") and response.content:
                         return response.content
                     else:
                         self.logger.error(f"Unexpected response format: {data}")
@@ -342,7 +352,9 @@ class PlaudAIExporter:
                 return response.content
 
         except httpx.HTTPStatusError as e:
-            self.logger.error(f"API error exporting transcription: {e.response.status_code} - {e.response.text}")
+            self.logger.error(
+                f"API error exporting transcription: {e.response.status_code} - {e.response.text}"
+            )
             raise APIError(f"Failed to export transcription: {e.response.status_code}") from e
         except Exception as e:
             self.logger.error(f"Unexpected error exporting transcription: {e}")
@@ -403,6 +415,7 @@ class PlaudAIExporter:
 
         # Format start time (assuming Unix timestamp)
         from datetime import datetime
+
         try:
             dt = datetime.fromtimestamp(start_time)
             time_str = dt.strftime("%Y-%m-%d %H:%M:%S")
@@ -435,7 +448,9 @@ class PlaudAIExporter:
             return data
 
         except httpx.HTTPStatusError as e:
-            self.logger.error(f"API error probing /ai/query_source: {e.response.status_code} - {e.response.text}")
+            self.logger.error(
+                f"API error probing /ai/query_source: {e.response.status_code} - {e.response.text}"
+            )
             raise APIError(f"Failed to probe /ai/query_source: {e.response.status_code}") from e
         except Exception as e:
             self.logger.error(f"Unexpected error probing /ai/query_source: {e}")
@@ -462,7 +477,9 @@ class PlaudAIExporter:
             return data
 
         except httpx.HTTPStatusError as e:
-            self.logger.error(f"API error probing /ai/trans-status: {e.response.status_code} - {e.response.text}")
+            self.logger.error(
+                f"API error probing /ai/trans-status: {e.response.status_code} - {e.response.text}"
+            )
             raise APIError(f"Failed to probe /ai/trans-status: {e.response.status_code}") from e
         except Exception as e:
             self.logger.error(f"Unexpected error probing /ai/trans-status: {e}")
@@ -492,8 +509,11 @@ class PlaudAIExporter:
             return files
 
         except httpx.HTTPStatusError as e:
-            self.logger.error(f"API error probing /file/list detailed: {e.response.status_code} - {e.response.text}")
+            self.logger.error(
+                f"API error probing /file/list detailed: {e.response.status_code} - {e.response.text}"
+            )
             raise APIError(f"Failed to probe /file/list detailed: {e.response.status_code}") from e
+
     async def probe_ai_query_note(self, file_id: str) -> dict[str, Any]:
         """Probe the /ai/query_note endpoint with a specific file ID.
 
@@ -518,8 +538,329 @@ class PlaudAIExporter:
             return data
 
         except httpx.HTTPStatusError as e:
-            self.logger.error(f"API error probing /ai/query_note: {e.response.status_code} - {e.response.text}")
+            self.logger.error(
+                f"API error probing /ai/query_note: {e.response.status_code} - {e.response.text}"
+            )
             raise APIError(f"Failed to probe /ai/query_note: {e.response.status_code}") from e
         except Exception as e:
             self.logger.error(f"Unexpected error probing /ai/query_note: {e}")
             raise APIError(f"Unexpected error probing /ai/query_note: {e}") from e
+
+    async def request_summary_generation(self, recording_id: str) -> bool:
+        """Request AI summary generation for a recording."""
+        url = f"{self.BASE_URL}/ai/transsumm/{recording_id}"
+
+        payload = {
+            "is_reload": 0,
+            "summ_type": "AUTO-SELECT",
+            "summ_type_type": "system",
+            "info": '{"language":"auto","diarization":1,"llm":"auto"}',
+            "support_mul_summ": True,
+        }
+
+        try:
+            self.logger.info("Requesting summary generation", recording_id=recording_id)
+            response = await self.client.post(url, json=payload)
+            response.raise_for_status()
+
+            data = response.json()
+            if data.get("status") == 0 or (
+                data.get("status") == 1 and data.get("msg") == "success"
+            ):
+                self.logger.info(
+                    "Summary generation requested successfully", recording_id=recording_id
+                )
+                return True
+            else:
+                self.logger.warning(
+                    "Summary generation request failed with status",
+                    recording_id=recording_id,
+                    status=data.get("status"),
+                    message=data.get("msg", "Unknown error"),
+                )
+                return False
+
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code == 409:
+                # Summary already exists or is being generated
+                self.logger.info("Summary already exists or in progress", recording_id=recording_id)
+                return True
+            self.logger.error(
+                "Failed to request summary generation",
+                recording_id=recording_id,
+                status_code=e.response.status_code,
+            )
+            return False
+        except Exception as e:
+            self.logger.error(
+                "Error requesting summary generation", recording_id=recording_id, error=str(e)
+            )
+            return False
+
+    async def get_summary_status(self, recording_id: str) -> str:
+        """Get the status of summary generation for a recording.
+
+        Returns:
+            'completed', 'processing', 'failed', or 'not_found'
+        """
+        url = f"{self.BASE_URL}/v1/recordings/{recording_id}/summary/status"
+
+        try:
+            self.logger.info(f"Checking generation status for {recording_id}")
+            response = await self.client.get(url)
+            if response.status_code == 404:
+                return "not_found"
+
+            response.raise_for_status()
+            data = response.json()
+
+            if data.get("status") == 0:
+                status_data = data.get("data", {})
+                status = status_data.get("status", "unknown")
+                if status == "completed":
+                    return "completed"
+                elif status in ["processing", "pending"]:
+                    return "processing"
+                elif status == "failed":
+                    return "failed"
+
+            return "unknown"
+
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code == 404:
+                return "not_found"
+            self.logger.error(
+                f"Failed to get summary status for {recording_id}: {e.response.status_code}"
+            )
+            return "error"
+        except Exception as e:
+            self.logger.error(
+                f"Error getting summary status for {recording_id}: {e}"
+            )
+            return "error"
+
+    async def download_summary(self, recording_id: str) -> str | None:
+        """Download the completed summary for a recording."""
+        headers = {"file-id": recording_id}  # Add file-id header
+
+        url = f"{self.BASE_URL}/ai/query_note"
+
+        try:
+            self.logger.info(f"Downloading summary for {recording_id}")
+            response = await self.client.get(url, headers=headers)
+            response.raise_for_status()
+
+            data = response.json()
+            self.logger.debug(f"Summary query response: {data}")
+
+            if data.get("status") == 0 and "data" in data:
+                query_data = data["data"]
+                if isinstance(query_data, list) and query_data:
+                    # Check all items for summary data
+                    for item in query_data:
+                        if isinstance(item, dict):
+                            # Look for summary content in various fields
+                            summary = (
+                                item.get("summary")
+                                or item.get("summary_content")
+                                or item.get("data_content")
+                            )
+                            if isinstance(summary, str) and summary.strip() and len(summary) > 100:
+                                # Parse JSON content if needed
+                                parsed_summary = self._parse_ai_content(summary.strip())
+
+                                # Assume summaries are longer than 100 chars
+                                self.logger.info(
+                                    f"Found summary content: {len(parsed_summary)} chars"
+                                )
+                                return parsed_summary
+
+            self.logger.warning(f"Summary not found in response for {recording_id}")
+            return None
+
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code == 404:
+                self.logger.warning(f"Summary not found for {recording_id}")
+                return None
+            self.logger.error(
+                f"Failed to download summary for {recording_id}: {e.response.status_code}"
+            )
+            return None
+        except Exception as e:
+            self.logger.error(f"Failed to download summary for {recording_id}: {e}")
+            return None
+
+    async def get_or_generate_summary(
+        self, recording_id: str, wait_for_summary: bool = False, max_wait_time: int = 300
+    ) -> str | None:
+        """Get existing summary or generate new one, optionally waiting for completion."""
+        # First try to get existing summary
+        try:
+            summary = await self.download_summary(recording_id)
+            if summary:
+                return summary
+        except Exception:
+            pass
+
+        # Request summary generation
+        success = await self.request_summary_generation(recording_id)
+        if not success:
+            return None
+
+        if not wait_for_summary:
+            # Don't wait, return None for now
+            return None
+
+        # Wait for summary completion
+        import asyncio
+
+        start_time = asyncio.get_event_loop().time()
+
+        while asyncio.get_event_loop().time() - start_time < max_wait_time:
+            status = await self.get_summary_status(recording_id)
+
+            if status == "completed":
+                # Try to download the completed summary
+                try:
+                    summary = await self.download_summary(recording_id)
+                    return summary
+                except Exception:
+                    return None
+            elif status == "failed":
+                self.logger.warning("Summary generation failed", recording_id=recording_id)
+                return None
+
+            # Wait before checking again
+            await asyncio.sleep(5)
+
+        self.logger.warning("Summary generation timed out", recording_id=recording_id)
+        return None
+
+    async def generate_transcription_and_summary(self, recording_id: str) -> bool:
+        """Trigger transcription and summary generation for a recording.
+
+        Args:
+            recording_id: ID of the recording file
+
+        Returns:
+            True if the request was successful
+        """
+        url = f"{self.BASE_URL}/ai/transsumm/{recording_id}"
+
+        payload = {
+            "is_reload": 0,
+            "summ_type": "AUTO-SELECT",
+            "summ_type_type": "system",
+            "info": '{"language":"auto","diarization":1,"llm":"auto"}',
+            "support_mul_summ": True,
+        }
+
+        try:
+            self.logger.debug(f"Triggering transcription and summary for recording: {recording_id}")
+            response = await self.client.post(url, json=payload)
+            response.raise_for_status()
+
+            data = response.json()
+            if data.get("status") == 0 or data.get("msg") == "success":
+                self.logger.info(
+                    f"Successfully triggered transcription and summary for recording {recording_id}"
+                )
+                return True
+            else:
+                self.logger.error(
+                    f"Failed to trigger transcription: {data.get('msg', 'Unknown error')}"
+                )
+                return False
+
+        except httpx.HTTPStatusError as e:
+            self.logger.error(
+                f"API error triggering transcription: {e.response.status_code} - {e.response.text}"
+            )
+            return False
+        except Exception as e:
+            self.logger.error(f"Unexpected error triggering transcription: {e}")
+            return False
+
+    async def check_generation_status(self, recording_id: str) -> str:
+        """Check the status of transcription/summary generation for a recording.
+
+        Returns:
+            'completed', 'in_progress', 'failed', or 'unknown'
+        """
+        # Check summary status first
+        summary_status = await self.get_summary_status(recording_id)
+        if summary_status in ["completed", "processing", "failed"]:
+            return summary_status
+
+        # If summary status is not_found, it might mean generation hasn't started yet
+        # or is still in progress. For now, assume it's in progress if we recently triggered it
+        # This is a simplified implementation - you might want to add transcription-specific status checking
+        return "in_progress"
+
+    async def download_transcription(self, recording_id: str) -> str | None:
+        """Download transcription text for a recording."""
+        headers = self.client.headers.copy()
+        headers["file-id"] = recording_id  # Add file-id header
+
+        url = f"{self.BASE_URL}/ai/query_note"
+
+        try:
+            self.logger.info(f"Downloading transcription for {recording_id}")
+            response = await self.client.get(url, headers=headers)
+            response.raise_for_status()
+
+            data = response.json()
+            self.logger.debug(f"Transcription query response: {data}")
+
+            if data.get("status") == 0 and "data" in data:
+                query_data = data["data"]
+                if isinstance(query_data, list) and query_data:
+                    # Get the first item (should contain transcription data)
+                    item = query_data[0]
+                    if isinstance(item, dict) and "data_content" in item:
+                        content = item["data_content"]
+                        if isinstance(content, str) and content.strip():
+                            # Parse JSON content if needed
+                            parsed_content = self._parse_ai_content(content.strip())
+                            self.logger.info(
+                                f"Found transcription content: {len(parsed_content)} chars"
+                            )
+                            return parsed_content
+
+            self.logger.warning(f"Transcription not found in response for {recording_id}")
+            return None
+
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code == 404:
+                self.logger.warning(f"Transcription not found for {recording_id}")
+                return None
+            self.logger.error(
+                f"Failed to download transcription for {recording_id}: {e.response.status_code}"
+            )
+            raise
+        except Exception as e:
+            self.logger.error(f"Error downloading transcription for {recording_id}: {e}")
+            raise
+
+    def _parse_ai_content(self, content: str) -> str:
+        """Parse AI-generated content, handling JSON responses."""
+        import json
+
+        try:
+            # Try to parse as JSON first
+            parsed = json.loads(content)
+            if isinstance(parsed, dict):
+                # Look for content in various fields
+                return (
+                    parsed.get("content")
+                    or parsed.get("text")
+                    or parsed.get("summary")
+                    or str(parsed)
+                )
+            elif isinstance(parsed, str):
+                return parsed
+            else:
+                return str(parsed)
+        except json.JSONDecodeError:
+            # Not JSON, return as-is
+            return content

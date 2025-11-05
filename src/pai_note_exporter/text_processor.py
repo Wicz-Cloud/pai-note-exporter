@@ -84,9 +84,9 @@ class TextProcessor:
         # Try different possible locations for transcription content
         possible_keys = [
             "ai_content",  # Current format
-            "content",     # Alternative format
+            "content",  # Alternative format
             "transcription",  # Alternative format
-            "text",        # Alternative format
+            "text",  # Alternative format
         ]
 
         for key in possible_keys:
@@ -109,7 +109,9 @@ class TextProcessor:
                 if content_parts:
                     return " ".join(content_parts)
 
-        self.logger.warning(f"No transcription content found in response structure: {list(data.keys())}")
+        self.logger.warning(
+            f"No transcription content found in response structure: {list(data.keys())}"
+        )
         return None
 
     def _clean_text(self, text: str) -> str:
@@ -153,10 +155,10 @@ class TextProcessor:
             text = text.replace("\\u2014", "—")  # Em dash
             text = text.replace("\\u2026", "…")  # Horizontal ellipsis
             text = text.replace("\\u00a0", " ")  # Non-breaking space
-            text = text.replace("\\u00ad", "")   # Soft hyphen
+            text = text.replace("\\u00ad", "")  # Soft hyphen
 
             # Handle any remaining \uXXXX sequences
-            text = re.sub(r'\\u([0-9a-fA-F]{4})', lambda m: chr(int(m.group(1), 16)), text)
+            text = re.sub(r"\\u([0-9a-fA-F]{4})", lambda m: chr(int(m.group(1), 16)), text)
 
             return text
         except Exception as e:
@@ -173,15 +175,15 @@ class TextProcessor:
             Cleaned text
         """
         # Remove excessive whitespace
-        text = re.sub(r'\n\s*\n\s*\n+', '\n\n', text)  # Multiple blank lines
-        text = re.sub(r' +', ' ', text)  # Multiple spaces
+        text = re.sub(r"\n\s*\n\s*\n+", "\n\n", text)  # Multiple blank lines
+        text = re.sub(r" +", " ", text)  # Multiple spaces
 
         # Fix common markdown issues
-        text = re.sub(r'\n- ', '\n\n- ', text)  # Ensure list items have proper spacing
-        text = re.sub(r'\n\d+\. ', '\n\n1. ', text)  # Fix numbered lists
+        text = re.sub(r"\n- ", "\n\n- ", text)  # Ensure list items have proper spacing
+        text = re.sub(r"\n\d+\. ", "\n\n1. ", text)  # Fix numbered lists
 
         # Clean up header formatting
-        text = re.sub(r'#{1,6}\s*', lambda m: m.group(0).strip() + ' ', text)
+        text = re.sub(r"#{1,6}\s*", lambda m: m.group(0).strip() + " ", text)
 
         return text
 
@@ -195,5 +197,5 @@ class TextProcessor:
             Text with normalized line endings
         """
         # Convert Windows (\r\n) and Mac (\r) line endings to Unix (\n)
-        text = text.replace('\r\n', '\n').replace('\r', '\n')
+        text = text.replace("\r\n", "\n").replace("\r", "\n")
         return text

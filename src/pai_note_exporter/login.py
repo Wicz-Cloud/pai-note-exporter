@@ -80,7 +80,7 @@ class PlaudAILogin:
                 "username": self.config.plaud_email,
                 "password": self.config.plaud_password,
                 "client_id": "web",
-                "password_encrypted": "false"
+                "password_encrypted": "false",
             }
 
             headers = {
@@ -91,11 +91,7 @@ class PlaudAILogin:
             }
 
             async with httpx.AsyncClient(timeout=30.0) as client:
-                response = await client.post(
-                    self.LOGIN_URL,
-                    data=login_data,
-                    headers=headers
-                )
+                response = await client.post(self.LOGIN_URL, data=login_data, headers=headers)
 
                 self.logger.debug(f"Login response status: {response.status_code}")
 
@@ -115,7 +111,9 @@ class PlaudAILogin:
                         self.logger.error(f"Failed to parse login response: {e}")
                         return False, None
                 else:
-                    self.logger.error(f"Login request failed with status {response.status_code}: {response.text}")
+                    self.logger.error(
+                        f"Login request failed with status {response.status_code}: {response.text}"
+                    )
                     return False, None
 
         except httpx.TimeoutException as e:

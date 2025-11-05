@@ -51,10 +51,12 @@ class SummaryTracker:
             data: Tracking data to save
         """
         self.tracking_file.parent.mkdir(parents=True, exist_ok=True)
-        with open(self.tracking_file, 'w') as f:
+        with open(self.tracking_file, "w") as f:
             json.dump(data, f, indent=2, default=str)
 
-    def add_pending_summary(self, file_id: str, filename: str, triggered_at: datetime | None = None) -> None:
+    def add_pending_summary(
+        self, file_id: str, filename: str, triggered_at: datetime | None = None
+    ) -> None:
         """Add a recording to the pending summaries tracking.
 
         Args:
@@ -69,7 +71,7 @@ class SummaryTracker:
         data[file_id] = {
             "filename": filename,
             "triggered_at": triggered_at.isoformat(),
-            "status": "pending"
+            "status": "pending",
         }
         self._save_tracking_data(data)
         self.logger.info(f"Added pending summary tracking for file {file_id}: {filename}")
@@ -85,7 +87,9 @@ class SummaryTracker:
             filename = data[file_id]["filename"]
             del data[file_id]
             self._save_tracking_data(data)
-            self.logger.info(f"Marked summary complete and removed tracking for file {file_id}: {filename}")
+            self.logger.info(
+                f"Marked summary complete and removed tracking for file {file_id}: {filename}"
+            )
 
     def get_pending_summaries(self, max_age_hours: int = 24) -> list[dict[str, Any]]:
         """Get list of pending summaries that are not too old.

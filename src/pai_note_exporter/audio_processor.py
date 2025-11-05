@@ -46,7 +46,7 @@ class PlaudAudioProcessor:
                 "Authorization": f"Bearer {token}",
                 "edit-from": "web",
                 "app-platform": "web",
-            }
+            },
         )
 
     async def __aenter__(self) -> "PlaudAudioProcessor":
@@ -74,8 +74,7 @@ class PlaudAudioProcessor:
         try:
             self.logger.debug(f"Fetching recordings (limit: {limit})")
             response = await self.client.post(
-                url,
-                json={"page": 1, "page_size": limit, "sort": "create_time", "order": "desc"}
+                url, json={"page": 1, "page_size": limit, "sort": "create_time", "order": "desc"}
             )
             response.raise_for_status()
 
@@ -92,13 +91,17 @@ class PlaudAudioProcessor:
                 raise APIError(f"Failed to get recordings: {data.get('msg', 'Unknown error')}")
 
         except httpx.HTTPStatusError as e:
-            self.logger.error(f"API error getting recordings: {e.response.status_code} - {e.response.text}")
+            self.logger.error(
+                f"API error getting recordings: {e.response.status_code} - {e.response.text}"
+            )
             raise APIError(f"Failed to get recordings: {e.response.status_code}") from e
         except Exception as e:
             self.logger.error(f"Unexpected error getting recordings: {e}")
             raise APIError(f"Unexpected error getting recordings: {e}") from e
 
-    def filter_audio_only_recordings(self, recordings: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    def filter_audio_only_recordings(
+        self, recordings: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
         """Filter recordings to find audio-only ones (without transcriptions).
 
         Args:
@@ -153,7 +156,7 @@ class PlaudAudioProcessor:
             "summ_type": "AUTO-SELECT",
             "summ_type_type": "system",
             "info": '{"language":"auto","diarization":1,"llm":"auto"}',
-            "support_mul_summ": True
+            "support_mul_summ": True,
         }
 
         try:
@@ -163,13 +166,19 @@ class PlaudAudioProcessor:
 
             data = response.json()
             if data.get("status") == 0:
-                self.logger.info(f"Successfully triggered transcription and summary for file {file_id}")
+                self.logger.info(
+                    f"Successfully triggered transcription and summary for file {file_id}"
+                )
                 return True
             else:
-                raise APIError(f"Failed to trigger transcription: {data.get('msg', 'Unknown error')}")
+                raise APIError(
+                    f"Failed to trigger transcription: {data.get('msg', 'Unknown error')}"
+                )
 
         except httpx.HTTPStatusError as e:
-            self.logger.error(f"API error triggering transcription: {e.response.status_code} - {e.response.text}")
+            self.logger.error(
+                f"API error triggering transcription: {e.response.status_code} - {e.response.text}"
+            )
             raise APIError(f"Failed to trigger transcription: {e.response.status_code}") from e
         except Exception as e:
             self.logger.error(f"Unexpected error triggering transcription: {e}")
@@ -184,7 +193,7 @@ class PlaudAudioProcessor:
         create_time: str | None = None,
         with_speaker: int = 0,
         with_timestamp: int = 0,
-        content: str | None = None
+        content: str | None = None,
     ) -> bytes:
         """Export transcription/summary content for a file.
 
@@ -237,13 +246,15 @@ class PlaudAudioProcessor:
             else:
                 self.logger.debug(f"Response content type: {response.headers.get('content-type')}")
                 self.logger.debug(f"Response headers: {dict(response.headers)}")
-                if hasattr(response, 'content') and response.content:
+                if hasattr(response, "content") and response.content:
                     return response.content
                 else:
                     raise APIError(f"Unexpected response format: {data}")
 
         except httpx.HTTPStatusError as e:
-            self.logger.error(f"API error exporting {prompt_type}: {e.response.status_code} - {e.response.text}")
+            self.logger.error(
+                f"API error exporting {prompt_type}: {e.response.status_code} - {e.response.text}"
+            )
             raise APIError(f"Failed to export {prompt_type}: {e.response.status_code}") from e
         except Exception as e:
             self.logger.error(f"Unexpected error exporting {prompt_type}: {e}")
@@ -255,7 +266,7 @@ class PlaudAudioProcessor:
         generate_transcription: bool = True,
         generate_summary: bool = True,
         output_dir: Path | None = None,
-        progress_callback: callable | None = None
+        progress_callback: callable | None = None,
     ) -> list[dict[str, Any]]:
         """Process audio-only recordings: find them and generate transcription/summary.
 
@@ -302,7 +313,7 @@ class PlaudAudioProcessor:
                 "processed": False,
                 "transcription_path": None,
                 "summary_path": None,
-                "error": None
+                "error": None,
             }
 
             try:
@@ -341,5 +352,7 @@ class PlaudAudioProcessor:
 
             results.append(result)
 
-        self.logger.info(f"Audio processing completed. Processed {len([r for r in results if r['processed']])}/{len(audio_recordings)} recordings")
+        self.logger.info(
+            f"Audio processing completed. Processed {len([r for r in results if r['processed']])}/{len(audio_recordings)} recordings"
+        )
         return results

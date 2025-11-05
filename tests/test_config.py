@@ -4,7 +4,6 @@ import os
 from unittest.mock import patch
 
 import pytest
-
 from pai_note_exporter.config import Config
 
 
