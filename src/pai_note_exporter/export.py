@@ -8,6 +8,7 @@ import httpx
 from pai_note_exporter.config import Config
 from pai_note_exporter.exceptions import APIError
 from pai_note_exporter.logger import setup_logger
+from pai_note_exporter.rate_limiter import RateLimiter
 
 
 class PlaudAIExporter:
@@ -41,6 +42,13 @@ class PlaudAIExporter:
             log_file=config.log_file,
         )
 
+        # Initialize rate limiter (5 requests per second, 15 burst limit)
+        self.rate_limiter = RateLimiter(
+            requests_per_second=5.0,
+            burst_limit=15,
+            name="PlaudAIExporter"
+        )
+
         # Generate device ID (same format as seen in HAR file)
         import uuid
 
@@ -65,6 +73,40 @@ class PlaudAIExporter:
     async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:  # type: ignore
         """Async context manager exit."""
         await self.client.aclose()
+
+    async def _make_request(self, method: str, url: str, **kwargs) -> httpx.Response:
+        """Make a rate-limited HTTP request.
+
+        Args:
+            method: HTTP method (GET, POST, etc.)
+            url: Full URL for the request
+            **kwargs: Additional arguments for the request
+
+        Returns:
+            HTTP response object
+        """
+        # Acquire rate limit permission
+        await self.rate_limiter.acquire()
+
+        # Log rate limiter stats occasionally
+        if len(self.rate_limiter.request_times) % 10 == 0:
+            stats = self.rate_limiter.get_stats()
+            self.logger.debug(
+                f"Rate limiter stats: {stats['requests_per_minute']:.1f} req/min, "
+                f"{stats['current_tokens']:.1f} tokens available"
+            )
+
+        # Make the actual request
+        if method.upper() == "GET":
+            return await self.client.get(url, **kwargs)
+        elif method.upper() == "POST":
+            return await self.client.post(url, **kwargs)
+        elif method.upper() == "PUT":
+            return await self.client.put(url, **kwargs)
+        elif method.upper() == "DELETE":
+            return await self.client.delete(url, **kwargs)
+        else:
+            raise ValueError(f"Unsupported HTTP method: {method}")
 
     async def list_files(
         self,
@@ -100,7 +142,7 @@ class PlaudAIExporter:
 
         try:
             self.logger.debug(f"Listing files: {params}")
-            response = await self.client.get(url, params=params)  # type: ignore[arg-type]
+            response = await self._make_request("GET", url, params=params)  # type: ignore[arg-type]
             response.raise_for_status()
 
             data = response.json()
@@ -142,7 +184,7 @@ class PlaudAIExporter:
         try:
             url = f"{self.BASE_URL}/ai/transsumm/{file_id}"
             self.logger.debug(f"Trying /ai/transsumm/{file_id}")
-            response = await self.client.get(url)
+            response = await self._make_request("GET", url)
             response.raise_for_status()
             data = response.json()
             self.logger.debug(f"/ai/transsumm response: {data}")
@@ -169,7 +211,7 @@ class PlaudAIExporter:
         try:
             url = f"{self.BASE_URL}/file/{file_id}"
             self.logger.debug(f"Trying /file/{file_id}")
-            response = await self.client.get(url)
+            response = await self._make_request("GET", url)
             response.raise_for_status()
             data = response.json()
             self.logger.debug(f"/file/{file_id} response: {data}")
@@ -193,7 +235,7 @@ class PlaudAIExporter:
         try:
             url = f"{self.BASE_URL}/ai/query_note"
             self.logger.debug("Trying /ai/query_note with file-id header")
-            response = await self.client.get(url, headers={"file-id": file_id})
+            response = await self._make_request("GET", url, headers={"file-id": file_id})
             response.raise_for_status()
             data = response.json()
             self.logger.debug(f"/ai/query_note response: {data}")
@@ -240,7 +282,7 @@ class PlaudAIExporter:
 
         try:
             self.logger.debug(f"Getting temp URL for file {file_id}")
-            response = await self.client.get(url, headers=headers)
+            response = await self._make_request("GET", url, headers=headers)
             response.raise_for_status()
 
             data = response.json()
@@ -317,7 +359,7 @@ class PlaudAIExporter:
 
         try:
             self.logger.debug(f"Exporting {prompt_type} for file {file_id} as {to_format}")
-            response = await self.client.post(url, json=payload)
+            response = await self._make_request("POST", url, json=payload)
             response.raise_for_status()
 
             # The response should contain the file data
@@ -444,7 +486,7 @@ class PlaudAIExporter:
 
         try:
             self.logger.debug(f"Probing /ai/query_source for file {file_id}")
-            response = await self.client.get(url, headers={"file-id": file_id})
+            response = await self._make_request("GET", url, headers={"file-id": file_id})
             response.raise_for_status()
 
             data = response.json()
@@ -473,7 +515,7 @@ class PlaudAIExporter:
 
         try:
             self.logger.debug("Probing /ai/trans-status")
-            response = await self.client.get(url)
+            response = await self._make_request("GET", url)
             response.raise_for_status()
 
             data = response.json()
@@ -502,7 +544,7 @@ class PlaudAIExporter:
 
         try:
             self.logger.debug("Probing /file/list with support_mul_summ=true")
-            response = await self.client.post(url)
+            response = await self._make_request("POST", url)
             response.raise_for_status()
 
             data = response.json()
@@ -534,7 +576,7 @@ class PlaudAIExporter:
 
         try:
             self.logger.debug(f"Probing /ai/query_note for file {file_id}")
-            response = await self.client.get(url, headers={"file-id": file_id})
+            response = await self._make_request("GET", url, headers={"file-id": file_id})
             response.raise_for_status()
 
             data = response.json()
@@ -564,7 +606,7 @@ class PlaudAIExporter:
 
         try:
             self.logger.info(f"Requesting summary generation for recording {recording_id}")
-            response = await self.client.post(url, json=payload)
+            response = await self._make_request("POST", url, json=payload)
             response.raise_for_status()
 
             data = response.json()
@@ -608,7 +650,7 @@ class PlaudAIExporter:
 
         try:
             self.logger.info(f"Checking generation status for {recording_id}")
-            response = await self.client.get(url)
+            response = await self._make_request("GET", url)
             if response.status_code == 404:
                 return "not_found"
 
@@ -646,7 +688,7 @@ class PlaudAIExporter:
 
         try:
             self.logger.info(f"Downloading summary for {recording_id}")
-            response = await self.client.get(url, headers=headers)
+            response = await self._make_request("GET", url, headers=headers)
             response.raise_for_status()
 
             data = response.json()
@@ -756,7 +798,7 @@ class PlaudAIExporter:
 
         try:
             self.logger.debug(f"Triggering transcription and summary for recording: {recording_id}")
-            response = await self.client.post(url, json=payload)
+            response = await self._make_request("POST", url, json=payload)
             response.raise_for_status()
 
             data = response.json()
@@ -805,7 +847,7 @@ class PlaudAIExporter:
 
         try:
             self.logger.info(f"Downloading transcription for {recording_id}")
-            response = await self.client.get(url, headers=headers)
+            response = await self._make_request("GET", url, headers=headers)
             response.raise_for_status()
 
             data = response.json()

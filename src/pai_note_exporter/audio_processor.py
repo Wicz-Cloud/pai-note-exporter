@@ -9,6 +9,7 @@ import httpx
 from pai_note_exporter.config import Config
 from pai_note_exporter.exceptions import APIError
 from pai_note_exporter.logger import setup_logger
+from pai_note_exporter.rate_limiter import RateLimiter
 
 
 class PlaudAudioProcessor:
@@ -41,6 +42,14 @@ class PlaudAudioProcessor:
             log_level=config.log_level,
             log_file=config.log_file,
         )
+
+        # Initialize rate limiter (5 requests per second, 15 burst limit)
+        self.rate_limiter = RateLimiter(
+            requests_per_second=5.0,
+            burst_limit=15,
+            name="PlaudAudioProcessor"
+        )
+
         self.client = httpx.AsyncClient(
             timeout=300.0,  # Longer timeout for processing
             headers={
@@ -58,6 +67,40 @@ class PlaudAudioProcessor:
         """Async context manager exit."""
         await self.client.aclose()
 
+    async def _make_request(self, method: str, url: str, **kwargs) -> httpx.Response:
+        """Make a rate-limited HTTP request.
+
+        Args:
+            method: HTTP method (GET, POST, etc.)
+            url: Full URL for the request
+            **kwargs: Additional arguments for the request
+
+        Returns:
+            HTTP response object
+        """
+        # Acquire rate limit permission
+        await self.rate_limiter.acquire()
+
+        # Log rate limiter stats occasionally
+        if len(self.rate_limiter.request_times) % 10 == 0:
+            stats = self.rate_limiter.get_stats()
+            self.logger.debug(
+                f"Rate limiter stats: {stats['requests_per_minute']:.1f} req/min, "
+                f"{stats['current_tokens']:.1f} tokens available"
+            )
+
+        # Make the actual request
+        if method.upper() == "GET":
+            return await self.client.get(url, **kwargs)
+        elif method.upper() == "POST":
+            return await self.client.post(url, **kwargs)
+        elif method.upper() == "PUT":
+            return await self.client.put(url, **kwargs)
+        elif method.upper() == "DELETE":
+            return await self.client.delete(url, **kwargs)
+        else:
+            raise ValueError(f"Unsupported HTTP method: {method}")
+
     async def get_recordings(self, limit: int = 50) -> list[dict[str, Any]]:
         """Get list of recordings from Plaud.ai account.
 
@@ -74,8 +117,8 @@ class PlaudAudioProcessor:
 
         try:
             self.logger.debug(f"Fetching recordings (limit: {limit})")
-            response = await self.client.post(
-                url, json={"page": 1, "page_size": limit, "sort": "create_time", "order": "desc"}
+            response = await self._make_request(
+                "POST", url, json={"page": 1, "page_size": limit, "sort": "create_time", "order": "desc"}
             )
             response.raise_for_status()
 
@@ -177,7 +220,7 @@ class PlaudAudioProcessor:
 
         try:
             self.logger.debug(f"Triggering transcription and summary for file: {file_id}")
-            response = await self.client.post(url, json=payload)
+            response = await self._make_request("POST", url, json=payload)
             response.raise_for_status()
 
             data = response.json()
@@ -248,7 +291,7 @@ class PlaudAudioProcessor:
 
         try:
             self.logger.debug(f"Exporting {prompt_type} for file {file_id} as {to_format}")
-            response = await self.client.post(url, json=payload)
+            response = await self._make_request("POST", url, json=payload)
             response.raise_for_status()
 
             data = response.json()
