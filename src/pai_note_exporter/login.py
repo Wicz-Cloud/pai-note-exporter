@@ -78,7 +78,7 @@ class PlaudAILogin:
             # Prepare login data - try plain password first
             login_data = {
                 "username": self.config.plaud_email,
-                "password": self.config.plaud_password,
+                "password": self.config.plaud_password,  # allowlist secret
                 "client_id": "web",
                 "password_encrypted": "false",
             }

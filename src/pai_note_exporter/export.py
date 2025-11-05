@@ -214,9 +214,6 @@ class PlaudAIExporter:
         except Exception as e:
             self.logger.debug(f"/ai/query_note failed: {e}")
 
-        except Exception as e:
-            self.logger.debug(f"/ai/query_note failed: {e}")
-
         self.logger.debug(f"No transcription content found for file {file_id}")
         return None
 
@@ -315,9 +312,8 @@ class PlaudAIExporter:
         if prompt_type == "trans":
             # For transcription, don't pass content - let the API generate it server-side
             pass
-        elif prompt_type == "summary":
-            if content:
-                payload["summary_content"] = content
+        elif prompt_type == "summary" and content:
+            payload["summary_content"] = content
 
         try:
             self.logger.debug(f"Exporting {prompt_type} for file {file_id} as {to_format}")
@@ -379,13 +375,15 @@ class PlaudAIExporter:
 
         try:
             self.logger.info(f"Downloading {filename} to {output_path}")
-            async with httpx.AsyncClient(timeout=60.0) as download_client:
-                async with download_client.stream("GET", url) as response:
-                    response.raise_for_status()
+            async with (
+                httpx.AsyncClient(timeout=60.0) as download_client,
+                download_client.stream("GET", url) as response,
+            ):
+                response.raise_for_status()
 
-                    with open(output_path, "wb") as f:
-                        async for chunk in response.aiter_bytes():
-                            f.write(chunk)
+                with open(output_path, "wb") as f:
+                    async for chunk in response.aiter_bytes():
+                        f.write(chunk)
 
             self.logger.info(f"Successfully downloaded {filename}")
             return output_path
@@ -419,7 +417,7 @@ class PlaudAIExporter:
         try:
             dt = datetime.fromtimestamp(start_time)
             time_str = dt.strftime("%Y-%m-%d %H:%M:%S")
-        except:
+        except (ValueError, OSError):
             time_str = str(start_time)
 
         return f"[{file_id[:8]}] {filename} - {duration_str} - {time_str}"
@@ -559,7 +557,7 @@ class PlaudAIExporter:
         }
 
         try:
-            self.logger.info("Requesting summary generation", recording_id=recording_id)
+            self.logger.info(f"Requesting summary generation for recording {recording_id}")
             response = await self.client.post(url, json=payload)
             response.raise_for_status()
 
@@ -568,32 +566,29 @@ class PlaudAIExporter:
                 data.get("status") == 1 and data.get("msg") == "success"
             ):
                 self.logger.info(
-                    "Summary generation requested successfully", recording_id=recording_id
+                    f"Summary generation requested successfully for recording {recording_id}"
                 )
                 return True
             else:
                 self.logger.warning(
-                    "Summary generation request failed with status",
-                    recording_id=recording_id,
-                    status=data.get("status"),
-                    message=data.get("msg", "Unknown error"),
+                    f"Summary generation request failed with status {data.get('status')} for recording {recording_id}: {data.get('msg', 'Unknown error')}"
                 )
                 return False
 
         except httpx.HTTPStatusError as e:
             if e.response.status_code == 409:
                 # Summary already exists or is being generated
-                self.logger.info("Summary already exists or in progress", recording_id=recording_id)
+                self.logger.info(
+                    f"Summary already exists or in progress for recording {recording_id}"
+                )
                 return True
             self.logger.error(
-                "Failed to request summary generation",
-                recording_id=recording_id,
-                status_code=e.response.status_code,
+                f"Failed to request summary generation for recording {recording_id}, status: {e.response.status_code}"
             )
             return False
         except Exception as e:
             self.logger.error(
-                "Error requesting summary generation", recording_id=recording_id, error=str(e)
+                f"Error requesting summary generation for recording {recording_id}: {str(e)}"
             )
             return False
 
@@ -634,9 +629,7 @@ class PlaudAIExporter:
             )
             return "error"
         except Exception as e:
-            self.logger.error(
-                f"Error getting summary status for {recording_id}: {e}"
-            )
+            self.logger.error(f"Error getting summary status for {recording_id}: {e}")
             return "error"
 
     async def download_summary(self, recording_id: str) -> str | None:
@@ -727,13 +720,13 @@ class PlaudAIExporter:
                 except Exception:
                     return None
             elif status == "failed":
-                self.logger.warning("Summary generation failed", recording_id=recording_id)
+                self.logger.warning(f"Summary generation failed for recording {recording_id}")
                 return None
 
             # Wait before checking again
             await asyncio.sleep(5)
 
-        self.logger.warning("Summary generation timed out", recording_id=recording_id)
+        self.logger.warning(f"Summary generation timed out for recording {recording_id}")
         return None
 
     async def generate_transcription_and_summary(self, recording_id: str) -> bool:

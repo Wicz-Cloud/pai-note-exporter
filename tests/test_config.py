@@ -4,6 +4,7 @@ import os
 from unittest.mock import patch
 
 import pytest
+
 from pai_note_exporter.config import Config
 
 
@@ -54,9 +55,11 @@ class TestConfig:
             "PLAUD_PASSWORD": "test_password",
         }
 
-        with patch.dict(os.environ, env_vars, clear=True):
-            with pytest.raises(ValueError, match="PLAUD_EMAIL and PLAUD_PASSWORD"):
-                Config.from_env()
+        with (
+            patch.dict(os.environ, env_vars, clear=True),
+            pytest.raises(ValueError, match="PLAUD_EMAIL and PLAUD_PASSWORD"),
+        ):
+            Config.from_env()
 
     def test_config_from_env_missing_password(self) -> None:
         """Test that ValueError is raised when password is missing."""
@@ -64,9 +67,11 @@ class TestConfig:
             "PLAUD_EMAIL": "test@example.com",
         }
 
-        with patch.dict(os.environ, env_vars, clear=True):
-            with pytest.raises(ValueError, match="PLAUD_EMAIL and PLAUD_PASSWORD"):
-                Config.from_env()
+        with (
+            patch.dict(os.environ, env_vars, clear=True),
+            pytest.raises(ValueError, match="PLAUD_EMAIL and PLAUD_PASSWORD"),
+        ):
+            Config.from_env()
 
     def test_config_validate_valid(self) -> None:
         """Test validation with valid configuration."""

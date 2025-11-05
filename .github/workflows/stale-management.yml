@@ -1,0 +1,59 @@
+name: 'Stale Issue and PR Management'
+
+on:
+  schedule:
+    # Run daily at 1 AM UTC
+    - cron: '0 1 * * *'
+  workflow_dispatch:
+
+jobs:
+  stale:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+
+    steps:
+    - uses: actions/stale@v9
+      with:
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+        # Issues
+        days-before-issue-stale: 60
+        days-before-issue-close: 14
+        stale-issue-label: 'stale'
+        stale-issue-message: |
+          This issue has been automatically marked as stale because it has not had recent activity. It will be closed in 14 days if no further activity occurs.
+
+          If this issue is still relevant, please:
+          - Add a comment explaining why this issue is still important
+          - Update the issue with any new information
+          - Remove the `stale` label
+
+          Thank you for your contributions!
+
+        close-issue-message: |
+          This issue has been automatically closed due to inactivity. If you believe this issue is still relevant, please feel free to reopen it or create a new issue with updated information.
+
+        # Pull Requests
+        days-before-pr-stale: 30
+        days-before-pr-close: 7
+        stale-pr-label: 'stale'
+        stale-pr-message: |
+          This pull request has been automatically marked as stale because it has not had recent activity. It will be closed in 7 days if no further activity occurs.
+
+          To keep this PR open:
+          - Add a comment explaining the current status
+          - Push new commits if changes are needed
+          - Remove the `stale` label
+
+          If this PR is ready for review, please ensure all CI checks are passing and add a comment requesting review.
+
+        close-pr-message: |
+          This pull request has been automatically closed due to inactivity. If you would like to continue working on this, please reopen the PR or create a new one.
+
+        # Common settings
+        exempt-issue-labels: 'bug,enhancement,help wanted,good first issue,pinned'
+        exempt-pr-labels: 'work in progress,WIP,pinned'
+        exempt-all-milestones: true
+        operations-per-run: 30

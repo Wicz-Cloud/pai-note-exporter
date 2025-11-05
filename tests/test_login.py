@@ -3,6 +3,7 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+
 from pai_note_exporter.config import Config
 from pai_note_exporter.exceptions import BrowserError
 from pai_note_exporter.login import PlaudAILogin
@@ -61,12 +62,14 @@ class TestPlaudAILogin:
         """Test async context manager functionality."""
         login = PlaudAILogin(config)
 
-        with patch.object(login, "start_browser", new_callable=AsyncMock):
-            with patch.object(login, "close_browser", new_callable=AsyncMock):
-                async with login as login_instance:
-                    assert login_instance is login
-                    login.start_browser.assert_called_once()
-                login.close_browser.assert_called_once()
+        with (
+            patch.object(login, "start_browser", new_callable=AsyncMock),
+            patch.object(login, "close_browser", new_callable=AsyncMock),
+        ):
+            async with login as login_instance:
+                assert login_instance is login
+                login.start_browser.assert_called_once()
+            login.close_browser.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_close_browser_handles_none_objects(self, config: Config) -> None:

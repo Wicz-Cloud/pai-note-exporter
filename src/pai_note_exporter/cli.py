@@ -4,7 +4,6 @@ import argparse
 import asyncio
 import logging
 import sys
-import threading
 import time
 from pathlib import Path
 from typing import Any
@@ -26,27 +25,29 @@ from pai_note_exporter.text_processor import TextProcessor
 class ProgressIndicator:
     """A colorful progress indicator with spinner and timing information."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.spinner_chars = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
         self.colors = {
-            'reset': '\033[0m',
-            'red': '\033[31m',
-            'green': '\033[32m',
-            'yellow': '\033[33m',
-            'blue': '\033[34m',
-            'magenta': '\033[35m',
-            'cyan': '\033[36m',
-            'white': '\033[37m',
+            "reset": "\033[0m",
+            "red": "\033[31m",
+            "green": "\033[32m",
+            "yellow": "\033[33m",
+            "blue": "\033[34m",
+            "magenta": "\033[35m",
+            "cyan": "\033[36m",
+            "white": "\033[37m",
         }
         self.is_running = False
         self.thread = None
         self.start_time: float | None = None
         self.poll_count = 0
         self.last_poll_time: float | None = None
+        self.message = "Processing"
 
     def start(self, message: str = "Processing") -> None:
         """Start the progress indicator."""
         self.is_running = True
+        self.message = message
         self.start_time = time.time()
         self.poll_count = 0
 
@@ -66,13 +67,13 @@ class ProgressIndicator:
         """Run the spinner animation."""
         idx = 0
         while self.is_running:
-            elapsed = time.time() - self.start_time
+            elapsed = time.time() - (self.start_time or time.time())
             elapsed_str = f"{elapsed:.1f}s"
 
             # Calculate polling info
             poll_info = ""
             if self.poll_count > 0:
-                time_since_last_poll = time.time() - self.last_poll_time
+                time_since_last_poll = time.time() - (self.last_poll_time or time.time())
                 poll_freq = self.poll_count / elapsed if elapsed > 0 else 0
                 poll_info = f" | Polls: {self.poll_count} ({poll_freq:.1f}/s, {time_since_last_poll:.1f}s ago)"
 
@@ -599,7 +600,7 @@ async def export_command(
                     )
                     output_dir.mkdir(parents=True, exist_ok=True)
 
-                    for i, (idx, file_info) in enumerate(files_with_transcripts, 1):
+                    for i, (_idx, file_info) in enumerate(files_with_transcripts, 1):
                         file_id = file_info["id"]
                         filename = file_info["filename"]
 
@@ -629,7 +630,7 @@ async def export_command(
                     # Show which files need transcription
                     print("\nRecordings needing transcription:")
                     print("-" * 80)
-                    for i, (idx, file_info) in enumerate(files_needing_transcription, 1):
+                    for i, (_idx, file_info) in enumerate(files_needing_transcription, 1):
                         print(f"{i:2d}. {exporter.format_file_info(file_info)}")
                     print("-" * 80)
 
@@ -698,7 +699,7 @@ async def export_command(
                             f"\n🚀 Generating transcriptions for {len(selected_for_generation)} recording(s)..."
                         )
 
-                        for i, (idx, file_info) in enumerate(selected_for_generation, 1):
+                        for i, (_idx, file_info) in enumerate(selected_for_generation, 1):
                             file_id = file_info["id"]
                             filename = file_info["filename"]
 
@@ -732,7 +733,7 @@ async def export_command(
                                     poll_interval = 5
                                     max_polls = 300 // poll_interval  # 5 minutes max
 
-                                    for poll_num in range(max_polls):
+                                    for _poll_num in range(max_polls):
                                         progress.update_poll()
 
                                         status = await exporter.check_generation_status(file_id)
@@ -761,7 +762,7 @@ async def export_command(
                         if selected_for_generation:
                             print("\n📝 Exporting newly transcribed recording(s)...")
 
-                            for i, (idx, file_info) in enumerate(selected_for_generation, 1):
+                            for i, (_idx, file_info) in enumerate(selected_for_generation, 1):
                                 file_id = file_info["id"]
                                 filename = file_info["filename"]
 
@@ -1052,7 +1053,7 @@ async def generate_command(
                                     poll_interval = 5  # Check every 5 seconds
                                     max_polls = max_wait_time // poll_interval
 
-                                    for poll_num in range(max_polls):
+                                    for _poll_num in range(max_polls):
                                         # Update progress with poll info
                                         progress.update_poll()
 
@@ -1086,7 +1087,7 @@ async def generate_command(
                                     poll_interval = 5  # Check every 5 seconds
                                     max_polls = max_wait_time // poll_interval
 
-                                    for poll_num in range(max_polls):
+                                    for _poll_num in range(max_polls):
                                         # Update progress with poll info
                                         progress.update_poll()
 

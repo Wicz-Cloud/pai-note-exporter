@@ -3,6 +3,9 @@
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Documentation](https://img.shields.io/badge/docs-mkdocs-blue)](https://wicz-cloud.github.io/pai-note-exporter/)
+[![CI/CD](https://github.com/Wicz-Cloud/pai-note-exporter/actions/workflows/ci.yml/badge.svg)](https://github.com/Wicz-Cloud/pai-note-exporter/actions/workflows/ci.yml)
+[![Security](https://github.com/Wicz-Cloud/pai-note-exporter/actions/workflows/security.yml/badge.svg)](https://github.com/Wicz-Cloud/pai-note-exporter/actions/workflows/security.yml)
 
 A Python 3.11+ program that authenticates with Plaud.ai API and exports recordings and transcriptions. This tool provides automated authentication and data export from Plaud.ai with comprehensive error handling, logging, and security features.
 
@@ -34,6 +37,21 @@ A Python 3.11+ program that authenticates with Plaud.ai API and exports recordin
 - 🔒 Pre-commit hooks with detect-secrets
 - 📚 Clear documentation and docstrings
 - 🚀 Easy CLI interface with interactive and non-interactive modes
+
+## 📚 Documentation
+
+Complete documentation is available at [https://wicz-cloud.github.io/pai-note-exporter/](https://wicz-cloud.github.io/pai-note-exporter/)
+
+### Quick Links
+
+- [**Installation Guide**](https://wicz-cloud.github.io/pai-note-exporter/installation/) - Detailed setup instructions
+- [**Quick Start**](https://wicz-cloud.github.io/pai-note-exporter/quick-start/) - Get up and running quickly
+- [**CLI Usage**](https://wicz-cloud.github.io/pai-note-exporter/cli-usage/) - Command-line interface reference
+- [**Python API**](https://wicz-cloud.github.io/pai-note-exporter/python-api/) - Library usage and API reference
+- [**Configuration**](https://wicz-cloud.github.io/pai-note-exporter/configuration/) - All configuration options
+- [**Examples**](https://wicz-cloud.github.io/pai-note-exporter/examples/) - Practical usage examples
+- [**Troubleshooting**](https://wicz-cloud.github.io/pai-note-exporter/troubleshooting/) - Common issues and solutions
+- [**Architecture**](https://wicz-cloud.github.io/pai-note-exporter/architecture/) - System design and technical details
 
 ## Requirements
 
@@ -242,6 +260,41 @@ pai-note-exporter/
 └── pyproject.toml              # Project configuration
 
 ```
+
+## CI/CD Pipeline
+
+This project uses GitHub Actions for comprehensive continuous integration and deployment:
+
+### Automated Workflows
+
+- **CI Pipeline**: Multi-Python version testing (3.11, 3.12, 3.13) with coverage reporting
+- **Code Quality**: Automated linting, type checking, and formatting validation
+- **Security Scanning**: Bandit security linting, Safety dependency vulnerability checks, and detect-secrets
+- **Advanced Security**: CodeQL static analysis for security vulnerabilities
+- **Multi-Platform**: Cross-platform testing on Ubuntu, Windows, and macOS
+- **Performance**: Regression testing with benchmark tracking
+- **Dependency Updates**: Automated Dependabot updates for dependencies and GitHub Actions
+- **Quality Gates**: PR quality checks including coverage thresholds and code metrics
+- **Release Automation**: Automated PyPI publishing and GitHub releases
+- **Stale Management**: Automatic cleanup of inactive issues and PRs
+
+### Quality Gates
+
+Pull requests must pass:
+- ✅ All tests with ≥80% coverage
+- ✅ Code formatting (Black)
+- ✅ Import sorting (isort)
+- ✅ Linting (Ruff)
+- ✅ Type checking (mypy)
+- ✅ Security scanning
+- ✅ Pre-commit hooks
+
+### Badges
+
+[![CI](https://github.com/Wicz-Cloud/pai-note-exporter/actions/workflows/ci.yml/badge.svg)](https://github.com/Wicz-Cloud/pai-note-exporter/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/Wicz-Cloud/pai-note-exporter/actions/workflows/codeql.yml/badge.svg)](https://github.com/Wicz-Cloud/pai-note-exporter/actions/workflows/codeql.yml)
+[![Multi-Platform](https://github.com/Wicz-Cloud/pai-note-exporter/actions/workflows/multi-platform.yml/badge.svg)](https://github.com/Wicz-Cloud/pai-note-exporter/actions/workflows/multi-platform.yml)
+[![Performance](https://github.com/Wicz-Cloud/pai-note-exporter/actions/workflows/performance.yml/badge.svg)](https://github.com/Wicz-Cloud/pai-note-exporter/actions/workflows/performance.yml)
 
 ## Error Handling
 

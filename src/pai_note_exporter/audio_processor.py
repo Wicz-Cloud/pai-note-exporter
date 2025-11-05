@@ -225,13 +225,10 @@ class PlaudAudioProcessor:
             "with_timestamp": with_timestamp,
         }
 
-        if prompt_type == "trans":
-            # Only include trans_content if we have content
-            if content:
-                payload["trans_content"] = content if isinstance(content, list) else [content]
-        elif prompt_type == "summary":
-            if content:
-                payload["summary_content"] = content
+        if prompt_type == "trans" and content:
+            payload["trans_content"] = content if isinstance(content, list) else [content]
+        elif prompt_type == "summary" and content:
+            payload["summary_content"] = content
 
         try:
             self.logger.debug(f"Exporting {prompt_type} for file {file_id} as {to_format}")

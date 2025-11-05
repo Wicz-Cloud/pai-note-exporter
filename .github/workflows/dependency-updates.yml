@@ -1,0 +1,74 @@
+name: Dependency Updates
+
+on:
+  schedule:
+    # Check for updates daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    # Allow manual triggering
+
+jobs:
+  dependency-review:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Dependency Review
+      uses: actions/dependency-review-action@v4
+
+  outdated-check:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.11"
+
+    - name: Install pip-tools
+      run: pip install pip-tools
+
+    - name: Check for outdated dependencies
+      run: |
+        pip list --outdated --format=json > outdated.json
+        if [ -s outdated.json ]; then
+          echo "📦 Outdated dependencies found:"
+          cat outdated.json | python -m json.tool
+          echo "::warning::Outdated dependencies detected. Consider updating them."
+        else
+          echo "✅ All dependencies are up to date"
+        fi
+
+    - name: Upload outdated report
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: outdated-dependencies
+        path: outdated.json
+
+  security-audit:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.11"
+
+    - name: Install safety
+      run: pip install safety
+
+    - name: Run safety audit
+      run: safety check --output json --save-json safety-report.json || true
+
+    - name: Upload safety report
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: safety-audit-report
+        path: safety-report.json

@@ -1,6 +1,7 @@
 """Tests for exceptions module."""
 
 import pytest
+
 from pai_note_exporter.exceptions import (
     AuthenticationError,
     BrowserError,

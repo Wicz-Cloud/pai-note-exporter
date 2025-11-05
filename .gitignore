@@ -155,6 +155,7 @@ logs/
 
 # Exported files
 exports/
+advanced_exports/
 
 # HAR files (network captures)
 *.har
@@ -170,3 +171,15 @@ AGENT_INSTRUCTIONS.md
 .envrc
 .direnv/
 pending_summaries.json
+
+# Documentation build artifacts
+docs/build/
+docs/source/_build/
+
+# Example output files
+examples/exports/
+examples/*.log
+
+# Script artifacts
+scripts/*.tmp
+scripts/*.bak

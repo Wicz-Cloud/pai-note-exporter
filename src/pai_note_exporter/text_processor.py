@@ -92,7 +92,7 @@ class TextProcessor:
         for key in possible_keys:
             if key in data and isinstance(data[key], str) and data[key].strip():
                 self.logger.debug(f"Found transcription content in '{key}' field")
-                return data[key]
+                return str(data[key])
 
         # Check for nested structures
         if "data" in data and isinstance(data["data"], dict):
