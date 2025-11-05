@@ -14,12 +14,11 @@ import asyncio
 import os
 import time
 from pathlib import Path
-from typing import List, Dict, Any
+from typing import Any
 
 from pai_note_exporter.config import Config
-from pai_note_exporter.login import login
 from pai_note_exporter.export import PlaudAIExporter
-from pai_note_exporter.exceptions import PlaudAIError
+from pai_note_exporter.login import login
 
 
 class AdvancedExporter:
@@ -34,16 +33,16 @@ class AdvancedExporter:
         min_duration: int = 0,
         max_duration: int = None,
         has_transcription: bool = None,
-        limit: int = None
-    ) -> List[Dict[str, Any]]:
+        limit: int = None,
+    ) -> list[dict[str, Any]]:
         """Get recordings filtered by criteria."""
         print("Fetching recordings with filters...")
         all_files = await self.exporter.list_files()
 
         filtered_files = []
         for file_info in all_files:
-            duration = file_info.get('duration', 0)
-            is_trans = file_info.get('is_trans', False)
+            duration = file_info.get("duration", 0)
+            is_trans = file_info.get("is_trans", False)
 
             # Apply filters
             if duration < min_duration:
@@ -61,11 +60,8 @@ class AdvancedExporter:
         return filtered_files
 
     async def export_batch(
-        self,
-        files: List[Dict[str, Any]],
-        include_audio: bool = False,
-        batch_size: int = 5
-    ) -> Dict[str, Any]:
+        self, files: list[dict[str, Any]], include_audio: bool = False, batch_size: int = 5
+    ) -> dict[str, Any]:
         """Export files in batches with progress tracking."""
         total_files = len(files)
         successful_exports = 0
@@ -75,7 +71,7 @@ class AdvancedExporter:
         print(f"Starting batch export of {total_files} files (batch size: {batch_size})")
 
         for i in range(0, total_files, batch_size):
-            batch = files[i:i + batch_size]
+            batch = files[i : i + batch_size]
             batch_num = i // batch_size + 1
             total_batches = (total_files + batch_size - 1) // batch_size
 
@@ -92,15 +88,12 @@ class AdvancedExporter:
             # Process results
             for j, result in enumerate(results):
                 file_info = batch[j]
-                file_name = file_info.get('name', 'Unknown')
+                file_name = file_info.get("name", "Unknown")
 
                 if isinstance(result, Exception):
                     print(f"✗ Failed to export '{file_name}': {result}")
                     failed_exports += 1
-                    errors.append({
-                        'file': file_name,
-                        'error': str(result)
-                    })
+                    errors.append({"file": file_name, "error": str(result)})
                 else:
                     print(f"✓ Successfully exported '{file_name}'")
                     successful_exports += 1
@@ -111,13 +104,15 @@ class AdvancedExporter:
                 await asyncio.sleep(2)
 
         return {
-            'total': total_files,
-            'successful': successful_exports,
-            'failed': failed_exports,
-            'errors': errors
+            "total": total_files,
+            "successful": successful_exports,
+            "failed": failed_exports,
+            "errors": errors,
         }
 
-    async def _export_single_file_safe(self, file_info: Dict[str, Any], include_audio: bool) -> None:
+    async def _export_single_file_safe(
+        self, file_info: dict[str, Any], include_audio: bool
+    ) -> None:
         """Safely export a single file with error handling."""
         max_retries = 3
         retry_delay = 1
@@ -129,7 +124,9 @@ class AdvancedExporter:
             except Exception as e:
                 if attempt == max_retries - 1:
                     raise e  # Last attempt failed
-                print(f"  Retry {attempt + 1}/{max_retries} for '{file_info.get('name', 'Unknown')}': {e}")
+                print(
+                    f"  Retry {attempt + 1}/{max_retries} for '{file_info.get('name', 'Unknown')}': {e}"
+                )
                 await asyncio.sleep(retry_delay)
                 retry_delay *= 2  # Exponential backoff
 
@@ -145,7 +142,7 @@ async def main():
         password=os.getenv("PLAUD_PASSWORD", "your-password"),
         log_level="INFO",
         export_dir="./advanced_exports",
-        api_timeout=60
+        api_timeout=60,
     )
 
     # Validate configuration
@@ -167,7 +164,7 @@ async def main():
         start_time = time.time()
         token = await login(config)
         auth_time = time.time() - start_time
-        print(".2f")
+        print(f"✓ Authentication successful in {auth_time:.2f}s")
     except Exception as e:
         print(f"✗ Authentication failed: {e}")
         return
@@ -181,7 +178,7 @@ async def main():
         filtered_files = await advanced_exporter.get_recordings_with_criteria(
             min_duration=300,  # 5 minutes
             has_transcription=True,
-            limit=20  # Limit to 20 files for this example
+            limit=20,  # Limit to 20 files for this example
         )
 
         print(f"✓ Found {len(filtered_files)} recordings matching criteria")
@@ -200,14 +197,16 @@ async def main():
     print("-" * 40)
     total_duration = 0
     for i, file_info in enumerate(filtered_files, 1):
-        name = file_info.get('name', 'Unknown')
-        duration = file_info.get('duration', 0)
+        name = file_info.get("name", "Unknown")
+        duration = file_info.get("duration", 0)
         total_duration += duration
 
         hours, remainder = divmod(duration, 3600)
         minutes, seconds = divmod(remainder, 60)
 
-        duration_str = f"{hours}:{minutes:02d}:{seconds:02d}" if hours else f"{minutes}:{seconds:02d}"
+        duration_str = (
+            f"{hours}:{minutes:02d}:{seconds:02d}" if hours else f"{minutes}:{seconds:02d}"
+        )
 
         print(f"{i:2d}. {name}")
         print(f"    Duration: {duration_str}")
@@ -216,12 +215,16 @@ async def main():
     # Calculate total duration
     total_hours, remainder = divmod(total_duration, 3600)
     total_minutes, total_seconds = divmod(remainder, 60)
-    total_str = f"{total_hours}:{total_minutes:02d}:{total_seconds:02d}" if total_hours else f"{total_minutes}:{total_seconds:02d}"
+    total_str = (
+        f"{total_hours}:{total_minutes:02d}:{total_seconds:02d}"
+        if total_hours
+        else f"{total_minutes}:{total_seconds:02d}"
+    )
     print(f"Total duration: {total_str}")
 
     # Confirm export
     response = input(f"\nExport {len(filtered_files)} recordings? (y/N): ").lower().strip()
-    if response not in ('y', 'yes'):
+    if response not in ("y", "yes"):
         print("Export cancelled.")
         return
 
@@ -230,25 +233,24 @@ async def main():
     results = await advanced_exporter.export_batch(
         filtered_files,
         include_audio=False,  # Set to True to include audio files
-        batch_size=3  # Process 3 files concurrently
+        batch_size=3,  # Process 3 files concurrently
     )
     export_time = time.time() - start_time
 
     # Display results
-    print("
-Export Results:")
+    print("\nExport Results:")
     print("-" * 20)
     print(f"Total files: {results['total']}")
     print(f"Successful: {results['successful']}")
     print(f"Failed: {results['failed']}")
-    print(".2f")
-    print(".2f")
+    print(f"Export time: {export_time:.2f}s")
+    print(f"Processing rate: {len(filtered_files)/export_time:.2f} files/sec")
 
-    if results['errors']:
+    if results["errors"]:
         print(f"\nErrors ({len(results['errors'])}):")
-        for error in results['errors'][:5]:  # Show first 5 errors
+        for error in results["errors"][:5]:  # Show first 5 errors
             print(f"  - {error['file']}: {error['error']}")
-        if len(results['errors']) > 5:
+        if len(results["errors"]) > 5:
             print(f"  ... and {len(results['errors']) - 5} more errors")
 
     # Show exported files
@@ -257,7 +259,7 @@ Export Results:")
         print(f"\nExported files in {export_path}:")
         for file_path in sorted(exported_files):
             size_mb = file_path.stat().st_size / (1024 * 1024)
-            print(".1f")
+            print(f"  {file_path.name}: {size_mb:.1f} MB")
 
     print("\nAdvanced example completed!")
 

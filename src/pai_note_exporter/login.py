@@ -44,7 +44,7 @@ class PlaudAILogin:
             log_file=config.log_file,
         )
         self._token: str | None = None
-        
+
         # Browser-related attributes for backward compatibility
         self.browser = None
         self.context = None
@@ -143,7 +143,7 @@ class PlaudAILogin:
         """Get current URL (legacy method, raises BrowserError)."""
         raise BrowserError("Page not initialized")
 
-    async def take_screenshot(self, path: str) -> None:
+    async def take_screenshot(self, _path: str) -> None:
         """Take screenshot (legacy method, raises BrowserError)."""
         raise BrowserError("Page not initialized")
 

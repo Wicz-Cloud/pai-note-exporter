@@ -5,6 +5,7 @@ repos:
       - id: trailing-whitespace
       - id: end-of-file-fixer
       - id: check-yaml
+        exclude: ^mkdocs\.yml$
       - id: check-added-large-files
       - id: check-json
       - id: check-toml
@@ -16,7 +17,6 @@ repos:
     rev: 25.9.0
     hooks:
       - id: black
-        language_version: python3.13
 
   - repo: https://github.com/pycqa/isort
     rev: 7.0.0

@@ -43,12 +43,9 @@ class TestPlaudAILogin:
         with patch("httpx.AsyncClient.post") as mock_post:
             mock_response = MagicMock()
             mock_response.status_code = 200
-            mock_response.json.return_value = {
-                "status": 0,
-                "access_token": "test_token"
-            }
+            mock_response.json.return_value = {"status": 0, "access_token": "test_token"}
             mock_post.return_value = mock_response
-            
+
             success, token = await login.login()
             assert success is True
             assert token == "test_token"

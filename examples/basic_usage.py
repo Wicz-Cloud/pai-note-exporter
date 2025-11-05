@@ -11,8 +11,8 @@ import os
 from pathlib import Path
 
 from pai_note_exporter.config import Config
-from pai_note_exporter.login import login
 from pai_note_exporter.export import PlaudAIExporter
+from pai_note_exporter.login import login
 
 
 async def main():
@@ -48,7 +48,9 @@ async def main():
         print(f"✓ Found {len(files)} recordings")
 
         if not files:
-            print("No recordings found. Please ensure you have recordings in your Plaud.ai account.")
+            print(
+                "No recordings found. Please ensure you have recordings in your Plaud.ai account."
+            )
             return
 
     except Exception as e:
@@ -59,9 +61,9 @@ async def main():
     print("\nAvailable recordings:")
     print("-" * 30)
     for i, file_info in enumerate(files[:10], 1):  # Show first 10
-        name = file_info.get('name', 'Unknown')
-        duration = file_info.get('duration', 0)
-        has_transcription = file_info.get('is_trans', False)
+        name = file_info.get("name", "Unknown")
+        duration = file_info.get("duration", 0)
+        has_transcription = file_info.get("is_trans", False)
         status = "✓ Transcribed" if has_transcription else "○ Not transcribed"
 
         print(f"{i:2d}. {name}")
