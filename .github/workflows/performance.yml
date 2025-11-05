@@ -12,6 +12,7 @@ on:
 # Set minimal required permissions for performance testing
 permissions:
   contents: read
+  statuses: write
 
 jobs:
   performance:

@@ -12,6 +12,7 @@ on:
 # Set minimal required permissions for testing
 permissions:
   contents: read
+  statuses: write
 
 jobs:
   test:

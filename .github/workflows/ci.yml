@@ -9,6 +9,7 @@ on:
 # Set minimal required permissions for CI
 permissions:
   contents: read
+  statuses: write
 
 jobs:
   test:
