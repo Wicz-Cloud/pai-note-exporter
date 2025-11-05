@@ -7,6 +7,10 @@ on:
   workflow_dispatch:
     # Allow manual triggering
 
+# Set minimal required permissions for dependency checking
+permissions:
+  contents: read
+
 jobs:
   dependency-review:
     runs-on: ubuntu-latest

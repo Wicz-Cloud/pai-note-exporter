@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [ master, main ]
 
+# Set minimal required permissions for CI
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest

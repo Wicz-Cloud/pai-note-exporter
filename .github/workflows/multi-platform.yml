@@ -9,6 +9,10 @@ on:
     # Weekly multi-platform test
     - cron: '0 4 * * 1'
 
+# Set minimal required permissions for testing
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ${{ matrix.os }}
