@@ -44,7 +44,7 @@ jobs:
         python -c "import pai_note_exporter; print('✅ Package import successful')"
 
     - name: Create GitHub Release
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       with:
         tag_name: ${{ github.ref_name }}
         name: Release ${{ github.ref_name }}
